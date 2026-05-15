@@ -50,7 +50,7 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
     setIsLoading(true);
     billingApi.packages()
       .then((res) => setPackages(res.data.packages))
-      .catch(() => setError("Gagal memuat paket. Pastikan backend berjalan."))
+      .catch(() => setError("Gagal memuat paket. Pastikan konfigurasi Supabase sudah benar."))
       .finally(() => setIsLoading(false));
   }, [open, defaultTab]);
 

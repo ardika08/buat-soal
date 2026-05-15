@@ -68,7 +68,7 @@ export default function Login() {
               ? Object.values(apiError.response.data.errors).flat()[0]
               : undefined;
             const fallback = apiError.request && !apiError.response
-              ? `Backend tidak merespons. Pastikan Laravel bisa diakses di ${BASE_URL}.`
+              ? `Supabase tidak merespons. Pastikan VITE_SUPABASE_URL benar: ${BASE_URL}.`
               : apiError.message;
             setError(validation ?? apiError.response?.data?.message ?? fallback ?? "Login Google gagal.");
           }

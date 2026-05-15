@@ -52,7 +52,7 @@ export default function GenerateExam() {
   const [referenceText, setReferenceText] = useState("");
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [difficulty, setDifficulty] = useState("Campuran Berimbang");
-  const [pgOptions, setPgOptions] = useState("3 Opsi (A–C)");
+  const [pgOptions, setPgOptions] = useState("3 Opsi (A-C)");
   const [withIllustration, setWithIllustration] = useState(true);
   const [cogLevels, setCogLevels] = useState<string[]>([
     "C1 - Mengingat",
@@ -289,7 +289,7 @@ export default function GenerateExam() {
         (axiosErr.response?.status === 401
           ? "Sesi login belum aktif. Silakan login/register ulang agar token tersimpan."
           : undefined) ??
-        "Terjadi kesalahan. Pastikan server backend berjalan di http://localhost:8000";
+        "Terjadi kesalahan. Pastikan Supabase URL, anon key, dan Edge Function sudah dikonfigurasi.";
       setErrorMsg(msg);
     } finally {
       setIsGenerating(false);
@@ -917,9 +917,9 @@ export default function GenerateExam() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3 Opsi (A–C)">3 Opsi (A–C)</SelectItem>
-                      <SelectItem value="4 Opsi (A–D)">4 Opsi (A–D)</SelectItem>
-                      <SelectItem value="5 Opsi (A–E)">5 Opsi (A–E)</SelectItem>
+                      <SelectItem value="3 Opsi (A-C)">3 Opsi (A-C)</SelectItem>
+                      <SelectItem value="4 Opsi (A-D)">4 Opsi (A-D)</SelectItem>
+                      <SelectItem value="5 Opsi (A-E)">5 Opsi (A-E)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

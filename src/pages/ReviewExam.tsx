@@ -122,7 +122,7 @@ export default function ReviewExam() {
       setIsEditMode(false);
       setSaveMessage("Perubahan soal berhasil disimpan.");
     } catch {
-      setSaveMessage("Gagal menyimpan perubahan. Periksa backend lalu coba lagi.");
+      setSaveMessage("Gagal menyimpan perubahan. Periksa koneksi Supabase lalu coba lagi.");
     } finally {
       setIsSaving(false);
     }

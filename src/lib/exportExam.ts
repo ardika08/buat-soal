@@ -12,7 +12,7 @@ import {
   TextRun,
   WidthType,
 } from "docx";
-import api, { type ExamSession, type Question } from "@/lib/api";
+import { type ExamSession, type Question } from "@/lib/api";
 
 const saveBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -84,22 +84,13 @@ const imageToDataUrl = async (question: Question) => {
     return imageUrl;
   }
 
-  try {
-    const response = await api.get<Blob>(
-      `/exams/${question.exam_session_id}/questions/${question.id}/illustration`,
-      { responseType: "blob" },
-    );
+  const response = await fetch(imageUrl, { mode: "cors" });
 
-    return await blobToDataUrl(response.data);
-  } catch {
-    const response = await fetch(imageUrl, { mode: "cors" });
-
-    if (!response.ok) {
-      throw new Error("Illustration image could not be loaded.");
-    }
-
-    return await blobToDataUrl(await response.blob());
+  if (!response.ok) {
+    throw new Error("Illustration image could not be loaded.");
   }
+
+  return await blobToDataUrl(await response.blob());
 };
 
 export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
