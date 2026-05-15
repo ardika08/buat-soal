@@ -62,7 +62,7 @@ supabase functions deploy billing-checkout
 Minimal:
 
 ```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=SERVICE_ROLE_KEY
+supabase secrets set SERVICE_ROLE_KEY=SERVICE_ROLE_KEY
 supabase secrets set GEMINI_API_KEY=GEMINI_API_KEY
 supabase secrets set AI_FREE_PROVIDER=gemini
 ```

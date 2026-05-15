@@ -17,9 +17,11 @@ export function getAnonKey() {
 }
 
 export function getServiceRoleKey() {
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? firstKeyFromJson("SUPABASE_SECRET_KEYS");
+  const key = Deno.env.get("SERVICE_ROLE_KEY")
+    ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    ?? firstKeyFromJson("SUPABASE_SECRET_KEYS");
   if (!key) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY belum tersedia.");
+    throw new Error("SERVICE_ROLE_KEY belum tersedia.");
   }
   return key;
 }
