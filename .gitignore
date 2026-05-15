@@ -10,6 +10,7 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+supabase-secrets.env
 
 node_modules
 dist
