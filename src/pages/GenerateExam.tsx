@@ -62,6 +62,9 @@ export default function GenerateExam() {
   ]);
 
   const [topics, setTopics] = useState([{ topik: "", tujuan: "" }]);
+  const areTopicsComplete = topics.every(
+    (topic) => topic.topik.trim() && topic.tujuan.trim(),
+  );
 
   const addTopic = () => setTopics([...topics, { topik: "", tujuan: "" }]);
   const removeTopic = (index: number) => {
@@ -177,7 +180,15 @@ export default function GenerateExam() {
     setSelectedKelas(`Kelas ${kelasOptions[fase][0]}`);
   };
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 3));
+  const handleNext = () => {
+    if (step === 2 && !areTopicsComplete) {
+      setErrorMsg("Topik Pembelajaran dan Tujuan Pembelajaran wajib diisi.");
+      return;
+    }
+
+    setErrorMsg(null);
+    setStep((s) => Math.min(s + 1, 3));
+  };
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
   const appendArray = (formData: FormData, key: string, items: unknown[]) => {
@@ -224,6 +235,12 @@ export default function GenerateExam() {
   };
 
   const handleGenerate = async () => {
+    if (!areTopicsComplete) {
+      setErrorMsg("Topik Pembelajaran dan Tujuan Pembelajaran wajib diisi.");
+      setStep(2);
+      return;
+    }
+
     setIsGenerating(true);
     setGenerateProgress(8);
     setErrorMsg(null);
@@ -626,6 +643,7 @@ export default function GenerateExam() {
                           <Label>
                             Topik Pembelajaran{" "}
                             {topics.length > 1 ? index + 1 : ""}
+                            <span className="text-red-500"> *</span>
                           </Label>
                           <p className="text-sm text-slate-500 mt-0.5">
                             Tuliskan materi pokok yang akan diujikan.
@@ -638,11 +656,15 @@ export default function GenerateExam() {
                           }
                           placeholder="Contoh: Pecahan Senilai dan Operasi Hitung"
                           className="bg-white"
+                          required
                         />
                       </div>
                       <div className="space-y-2">
                         <div>
-                          <Label>Tujuan Pembelajaran (Opsional)</Label>
+                          <Label>
+                            Tujuan Pembelajaran
+                            <span className="text-red-500"> *</span>
+                          </Label>
                           <p className="text-sm text-slate-500 mt-0.5">
                             Tambahkan Capaian Pembelajaran atau tujuan spesifik
                             agar soal lebih relevan.
@@ -656,6 +678,7 @@ export default function GenerateExam() {
                           placeholder="Contoh: Siswa dapat menyelesaikan masalah terkait operasi tambah pecahan senilai..."
                           rows={2}
                           className="bg-white"
+                          required
                         />
                       </div>
                     </div>
@@ -961,7 +984,10 @@ export default function GenerateExam() {
           <Button
             onClick={handleNext}
             className="w-32 bg-indigo-600 hover:bg-indigo-700"
-            disabled={step === 1 && !mapel.trim()}
+            disabled={
+              (step === 1 && !mapel.trim()) ||
+              (step === 2 && !areTopicsComplete)
+            }
           >
             Lanjut
             <ArrowRight className="w-4 h-4 ml-2" />
