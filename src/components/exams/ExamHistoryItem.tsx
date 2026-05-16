@@ -14,15 +14,21 @@ export default function ExamHistoryItem({ exam, onDelete }: ExamHistoryItemProps
   const formatDate = (value: string) => {
     const date = new Date(value);
 
-    return Number.isNaN(date.getTime())
-      ? value
-      : date.toLocaleString("id-ID", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    const dateText = date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const timeText = date.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return `${dateText}, ${timeText} WIB`;
   };
 
   return (
@@ -48,7 +54,7 @@ export default function ExamHistoryItem({ exam, onDelete }: ExamHistoryItemProps
       </button>
 
       <div className="flex items-center justify-between gap-3 text-sm text-slate-500 pl-14 sm:pl-0">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
           <Clock className="w-4 h-4" />
           {formatDate(exam.created_at)}
         </div>
