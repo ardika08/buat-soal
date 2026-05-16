@@ -36,17 +36,29 @@ interface GeneratedQuestion {
 }
 
 const MAX_ILLUSTRATIONS = Number(Deno.env.get("AI_MAX_ILLUSTRATIONS_PER_EXAM") ?? "5");
+const MAX_QUESTIONS_PER_AI_REQUEST = Number(Deno.env.get("AI_MAX_QUESTIONS_PER_REQUEST") ?? "15");
 
 export function totalQuestions(formats: GenerateExamPayload["formats"]) {
   return formats.reduce((sum, format) => sum + Number(format.count ?? 0), 0);
 }
 
 export async function generateQuestions(profile: Profile, data: GenerateExamPayload) {
-  const total = totalQuestions(data.formats);
   const provider = hasPremiumAccess(profile)
     ? Deno.env.get("AI_PREMIUM_PROVIDER") ?? "openai"
     : Deno.env.get("AI_FREE_PROVIDER") ?? "gemini";
+  const batches = chunkFormats(data.formats, MAX_QUESTIONS_PER_AI_REQUEST);
+  const questions: GeneratedQuestion[] = [];
 
+  for (const formats of batches) {
+    const batchData = { ...data, formats };
+    const batchTotal = totalQuestions(formats);
+    questions.push(...await generateQuestionBatch(provider, batchData, batchTotal));
+  }
+
+  return questions;
+}
+
+async function generateQuestionBatch(provider: string, data: GenerateExamPayload, total: number) {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -394,6 +406,41 @@ function expectedTypesFromFormats(formats: GenerateExamPayload["formats"]) {
     }
   }
   return types;
+}
+
+function chunkFormats(formats: GenerateExamPayload["formats"], maxQuestions: number) {
+  const safeMaxQuestions = Math.max(1, maxQuestions);
+  const chunks: GenerateExamPayload["formats"][] = [];
+  let currentChunk: GenerateExamPayload["formats"] = [];
+  let currentCount = 0;
+
+  for (const format of formats) {
+    let remainingCount = Number(format.count ?? 0);
+
+    while (remainingCount > 0) {
+      const availableSlots = safeMaxQuestions - currentCount;
+      const takeCount = Math.min(remainingCount, availableSlots);
+
+      currentChunk.push({
+        ...format,
+        count: takeCount,
+      });
+      currentCount += takeCount;
+      remainingCount -= takeCount;
+
+      if (currentCount >= safeMaxQuestions) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+        currentCount = 0;
+      }
+    }
+  }
+
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
 }
 
 function cleanAnswer(answer: string) {
