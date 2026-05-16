@@ -183,7 +183,7 @@ export default function ReviewExam() {
               </div>
               <DialogTitle className="text-xl font-bold text-slate-900">Periksa Kembali Soal</DialogTitle>
               <DialogDescription className="text-slate-600">
-                Soal berhasil dibuat oleh AI. AI dapat membantu jauh lebih efektif, tetapi hasilnya tetap perlu dicek oleh guru.
+                Soal berhasil dibuat oleh Sistem. AI dapat membantu jauh lebih efektif, tetapi hasilnya tetap perlu dicek oleh guru.
               </DialogDescription>
             </DialogHeader>
 
