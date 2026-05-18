@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crown, LifeBuoy, MessageSquareMore, Sparkles } from "lucide-react";
+import { Crown, LifeBuoy, MessageSquareMore, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -93,6 +93,13 @@ export default function SubscriptionInfoDialog({
                 Anda juga bisa <span className="font-semibold text-slate-900">request update fitur</span>, dan kami akan mempertimbangkannya jika memungkinkan untuk dikembangkan.
               </p>
             </div>
+
+            <div className="flex items-start gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+              <Ticket className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+              <p className="text-sm leading-6 text-slate-700">
+                Anda juga bisa <span className="font-semibold text-slate-900">mencoba dulu layanan ini</span> sebelum memutuskan berlangganan, sehingga bisa menilai apakah Soalify cocok dengan kebutuhan Anda.
+              </p>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
@@ -100,7 +107,7 @@ export default function SubscriptionInfoDialog({
           </div>
         </div>
 
-        <DialogFooter className="items-center justify-between gap-3 border-slate-200 bg-white px-6 py-4 sm:flex-row sm:px-8">
+        <DialogFooter className="items-center justify-between gap-3 border-slate-200 bg-white px-6 py-5 sm:flex-row sm:px-8 sm:py-6">
           <p className="text-xs text-slate-500">
             {canClose ? "Informasi sudah bisa ditutup." : `Mohon baca sebentar. Tombol aktif dalam ${remainingSeconds} detik.`}
           </p>
