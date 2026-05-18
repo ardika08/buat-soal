@@ -4,10 +4,12 @@ import { FileText, ChevronRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BillingDialog from "@/components/billing/BillingDialog";
+import SubscriptionInfoDialog from "@/components/billing/SubscriptionInfoDialog";
 import DeleteExamDialog from "@/components/exams/DeleteExamDialog";
 import ExamHistoryItem from "@/components/exams/ExamHistoryItem";
 import { useAuth } from "@/lib/auth";
 import { examsApi, type ExamSession } from "@/lib/api";
+import { markSubscriptionInfoSeen, shouldShowSubscriptionInfo } from "@/lib/session-flags";
 
 export default function Dashboard() {
   const { user, refreshUser } = useAuth();
@@ -17,6 +19,8 @@ export default function Dashboard() {
   const [billingTab, setBillingTab] = useState<"topup" | "subscription">("topup");
   const [deleteTarget, setDeleteTarget] = useState<ExamSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [subscriptionInfoDismissed, setSubscriptionInfoDismissed] = useState(false);
+  const subscriptionInfoOpen = Boolean(user) && !subscriptionInfoDismissed && shouldShowSubscriptionInfo();
 
   useEffect(() => {
     void refreshUser();
@@ -165,6 +169,14 @@ export default function Dashboard() {
         }}
         defaultTab={billingTab}
       />
+      {subscriptionInfoOpen && (
+        <SubscriptionInfoDialog
+          onAcknowledge={() => {
+            markSubscriptionInfoSeen();
+            setSubscriptionInfoDismissed(true);
+          }}
+        />
+      )}
       <DeleteExamDialog
         exam={deleteTarget}
         isDeleting={isDeleting}

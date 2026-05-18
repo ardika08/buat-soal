@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { authApi, type AuthUser } from "@/lib/api";
+import { clearSubscriptionInfoSession, markSubscriptionInfoPending } from "@/lib/session-flags";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle: async (credential: string) => {
       const res = await authApi.google({ credential });
       localStorage.setItem("auth_token", res.data.token);
+      markSubscriptionInfoPending();
       persistUser(res.data.user);
     },
     logout: async () => {
@@ -76,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       localStorage.removeItem("auth_token");
+      clearSubscriptionInfoSession();
       persistUser(null);
     },
     refreshUser,
