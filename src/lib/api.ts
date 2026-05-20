@@ -276,7 +276,7 @@ export const examsApi = {
       throw new ApiError(error.message);
     }
 
-    const exams = (data ?? []).map((exam) => ({
+    const exams = (data ?? []).map((exam: Record<string, unknown>) => ({
       ...normalizeExam(exam),
       questions_count: Array.isArray(exam.questions) ? Number(exam.questions[0]?.count ?? 0) : 0,
     }));
@@ -290,7 +290,7 @@ export const examsApi = {
       throw new ApiError(totalQuestionsError.message);
     }
 
-    const totalQuestions = (allExamCounts ?? []).reduce((sum, exam) => {
+    const totalQuestions = (allExamCounts ?? []).reduce((sum: number, exam: Record<string, unknown>) => {
       const questionCount = Array.isArray(exam.questions) ? Number(exam.questions[0]?.count ?? 0) : 0;
       return sum + questionCount;
     }, 0);

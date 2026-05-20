@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -47,10 +46,10 @@ export default function SubscriptionInfoDialog({
   return (
     <Dialog open onOpenChange={handleOpenChange} disablePointerDismissal>
       <DialogContent
-        className="max-w-[calc(100%-1.5rem)] overflow-hidden border-none bg-white p-0 shadow-2xl sm:max-w-2xl"
+        className="flex max-h-[calc(100dvh-1rem)] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden border-none bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:max-w-2xl"
         showCloseButton={canClose}
       >
-        <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-5 text-white sm:px-8">
+        <div className="shrink-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-5 text-white sm:px-8">
           <div className="mb-4 inline-flex rounded-2xl bg-white/15 p-3 ring-1 ring-white/20 backdrop-blur-sm">
             <Crown className="h-6 w-6" />
           </div>
@@ -64,7 +63,7 @@ export default function SubscriptionInfoDialog({
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 px-6 py-6 sm:px-8">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6 overscroll-contain sm:px-8">
           <div className="grid gap-3">
             <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
               <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
@@ -107,18 +106,20 @@ export default function SubscriptionInfoDialog({
           </div>
         </div>
 
-        <DialogFooter className="items-center justify-between gap-3 border-slate-200 bg-white px-6 py-5 sm:flex-row sm:px-8 sm:py-6">
+        <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-5 sm:px-8 sm:py-6">
+          <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-slate-500">
             {canClose ? "Informasi sudah bisa ditutup." : `Mohon baca sebentar. Tombol aktif dalam ${remainingSeconds} detik.`}
           </p>
           <Button
-            className="min-w-36 bg-indigo-600 text-white hover:bg-indigo-700"
+            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 sm:min-w-36 sm:w-auto"
             disabled={!canClose}
             onClick={onAcknowledge}
           >
             {canClose ? "Saya Mengerti" : `Tutup (${remainingSeconds} dtk)`}
           </Button>
-        </DialogFooter>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
