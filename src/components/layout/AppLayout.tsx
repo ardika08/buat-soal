@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { BrainCircuit, Coins, LogOut, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AppStatsBar from "@/components/marketing/AppStatsBar";
 import SalesProofWidget from "@/components/marketing/SalesProofWidget";
 import { useAuth } from "@/lib/auth";
 
@@ -77,6 +78,8 @@ export default function AppLayout() {
           </div>
         </div>
       </header>
+
+      {location.pathname === "/" && <AppStatsBar />}
 
       {/* Main Content Area */}
       <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
