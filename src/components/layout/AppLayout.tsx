@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { BrainCircuit, Coins, LogOut, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SalesProofWidget from "@/components/marketing/SalesProofWidget";
 import { useAuth } from "@/lib/auth";
 
 export default function AppLayout() {
@@ -81,6 +82,8 @@ export default function AppLayout() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
         <Outlet />
       </main>
+
+      <SalesProofWidget />
 
       {/* Simple Footer */}
       <footer className="border-t bg-white mt-auto py-6 text-center text-slate-500 text-sm">

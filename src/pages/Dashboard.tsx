@@ -65,6 +65,9 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="relative z-10 px-8 py-12 md:py-16 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="max-w-xl text-center md:text-left space-y-4">
+            <div className="inline-flex rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-indigo-50 backdrop-blur-sm">
+              Saat ini sudah di V1.2
+            </div>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
               Buat Soal Ujian <br /> dalam Hitungan Menit.
             </h1>
