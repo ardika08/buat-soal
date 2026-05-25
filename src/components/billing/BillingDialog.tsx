@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { billingApi, type BillingPackage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -18,13 +19,16 @@ interface BillingDialogProps {
 }
 
 export default function BillingDialog({ open, onOpenChange, defaultTab = "topup" }: BillingDialogProps) {
-  const { updateUser } = useAuth();
+  const { user } = useAuth();
   const [packages, setPackages] = useState<BillingPackage[]>([]);
   const [activeTab, setActiveTab] = useState<"topup" | "subscription">(defaultTab);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerMobile, setCustomerMobile] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -47,12 +51,15 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
     setActiveTab(defaultTab);
     setMessage(null);
     setError(null);
+    setCustomerName(localStorage.getItem("billing_customer_name") ?? user?.name ?? "");
+    setCustomerEmail(localStorage.getItem("billing_customer_email") ?? user?.email ?? "");
+    setCustomerMobile(localStorage.getItem("billing_customer_mobile") ?? "");
     setIsLoading(true);
     billingApi.packages()
       .then((res) => setPackages(res.data.packages))
       .catch(() => setError("Gagal memuat paket. Pastikan konfigurasi Supabase sudah benar."))
       .finally(() => setIsLoading(false));
-  }, [open, defaultTab]);
+  }, [open, defaultTab, user?.email, user?.name]);
 
   const visiblePackages = useMemo(
     () => packages.filter((item) => item.type === activeTab),
@@ -67,24 +74,52 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
     }).format(value);
 
   const handleCheckout = async (packageId: string) => {
+    if (!customerName.trim()) {
+      setError("Nama pembeli wajib diisi agar checkout Mayar bisa dibuat.");
+      return;
+    }
+
+    if (!customerEmail.trim()) {
+      setError("Email pembeli wajib diisi agar checkout Mayar bisa dibuat.");
+      return;
+    }
+
+    if (!customerMobile.trim()) {
+      setError("Nomor WhatsApp wajib diisi agar checkout Mayar bisa dibuat.");
+      return;
+    }
+
     setProcessingId(packageId);
     setMessage(null);
     setError(null);
 
     try {
-      const res = await billingApi.checkout(packageId);
-      updateUser(res.data.user);
-      setMessage(res.data.message);
+      const res = await billingApi.checkout(packageId, {
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        mobile: customerMobile.trim(),
+      });
+      localStorage.setItem("billing_customer_name", customerName.trim());
+      localStorage.setItem("billing_customer_email", customerEmail.trim());
+      localStorage.setItem("billing_customer_mobile", customerMobile.trim());
+      setMessage("Link pembayaran berhasil dibuat. Anda akan diarahkan ke halaman checkout Mayar.");
+
+      if (res.data.payment.checkout_url) {
+        window.location.assign(res.data.payment.checkout_url);
+        return;
+      }
+
+      setError("Checkout dibuat, tetapi link pembayaran tidak ditemukan.");
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: string } } };
-      setError(apiError.response?.data?.message ?? "Paket gagal diaktifkan.");
+      setError(apiError.response?.data?.message ?? "Checkout Mayar gagal dibuat.");
     } finally {
       setProcessingId(null);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
       <DialogContent className="sm:max-w-3xl p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-xl font-bold">Pilih Paket</DialogTitle>
@@ -113,6 +148,37 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
         </div>
 
         <div className="px-6 pb-6 pt-4 space-y-4">
+          <div className="rounded-xl border bg-slate-50 p-4">
+            <label htmlFor="billing-name" className="block text-sm font-semibold text-slate-900">
+              Data pembeli untuk checkout
+            </label>
+            <p className="mt-1 text-xs text-slate-500">
+              Data ini akan dikirim ke Mayar agar form checkout tidak kosong dan pengguna tidak perlu mengisi ulang sebanyak mungkin.
+            </p>
+            <Input
+              id="billing-name"
+              className="mt-3 bg-white"
+              placeholder="Nama lengkap"
+              value={customerName}
+              onChange={(event) => setCustomerName(event.target.value)}
+            />
+            <Input
+              id="billing-email"
+              type="email"
+              className="mt-3 bg-white"
+              placeholder="Email aktif"
+              value={customerEmail}
+              onChange={(event) => setCustomerEmail(event.target.value)}
+            />
+            <Input
+              id="billing-mobile"
+              className="mt-3 bg-white"
+              placeholder="Contoh: 081234567890"
+              value={customerMobile}
+              onChange={(event) => setCustomerMobile(event.target.value)}
+            />
+          </div>
+
           {message && (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
               <CheckCircle2 className="h-4 w-4" />
@@ -155,11 +221,11 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
                     </div>
                     <Button
                       onClick={() => void handleCheckout(item.id)}
-                      disabled={processingId !== null}
+                      disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim()}
                       className="bg-indigo-600 text-white hover:bg-indigo-700"
                     >
                       {processingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Aktifkan
+                      Bayar
                     </Button>
                   </div>
                 </div>
@@ -168,7 +234,7 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
           )}
 
           <p className="text-xs text-slate-500">
-            Mode saat ini mengaktifkan paket langsung untuk kebutuhan MVP. Integrasi pembayaran bisa disambungkan ke endpoint ini.
+            Paket akan aktif otomatis setelah pembayaran Mayar terverifikasi.
           </p>
         </div>
       </DialogContent>
