@@ -47,6 +47,12 @@ export interface Topic {
   tujuan: string;
 }
 
+export interface DifficultyDistribution {
+  lots: number;
+  mots: number;
+  hots: number;
+}
+
 export interface GenerateExamPayload {
   curriculum: string;
   exam_type: string;
@@ -59,6 +65,7 @@ export interface GenerateExamPayload {
   reference_file?: File | null;
   difficulty: string;
   cognitive_levels: string[];
+  difficulty_distribution: DifficultyDistribution;
   pg_options: string | null;
   include_illustration: boolean;
   topics: Topic[];
@@ -124,6 +131,34 @@ export interface BillingPackage {
   credits: number;
   price: number;
   duration_months: number | null;
+}
+
+export interface BillingPayment {
+  order_id: number;
+  provider: "mayar";
+  status: "pending" | "paid" | "expired" | "failed";
+  checkout_url: string | null;
+  provider_payment_id?: string | null;
+  provider_transaction_id?: string | null;
+}
+
+export interface BillingCheckoutResponse {
+  message: string;
+  package: BillingPackage;
+  payment: BillingPayment;
+  user: AuthUser;
+}
+
+export interface BillingPaymentStatusResponse {
+  message: string;
+  payment: BillingPayment;
+  user?: AuthUser;
+}
+
+export interface BillingCustomer {
+  name: string;
+  email: string;
+  mobile: string;
 }
 
 const billingPackages: BillingPackage[] = [
@@ -388,8 +423,19 @@ export const billingApi = {
     },
   }),
 
-  checkout: async (packageId: string): ApiResponse<{ message: string; package: BillingPackage; user: AuthUser }> => ({
-    data: await invokeFunction("billing-checkout", { package_id: packageId }),
+  checkout: async (packageId: string, customer: BillingCustomer): ApiResponse<BillingCheckoutResponse> => ({
+    data: await invokeFunction("billing-checkout", {
+      package_id: packageId,
+      customer_name: customer.name,
+      customer_email: customer.email,
+      customer_mobile: customer.mobile,
+    }),
+  }),
+
+  checkPaymentStatus: async (orderId: number | string): ApiResponse<BillingPaymentStatusResponse> => ({
+    data: await invokeFunction("billing-payment-status", {
+      order_id: Number(orderId),
+    }),
   }),
 };
 
@@ -502,6 +548,7 @@ async function payloadFromFormData(formData: FormData): Promise<GenerateExamPayl
     tujuan: String(value.tujuan ?? ""),
   }));
   const cognitiveLevels = readIndexedArray(formData, "cognitive_levels");
+  const difficultyDistribution = readNamedObject(formData, "difficulty_distribution");
   const file = formData.get("reference_file");
   const filePayload = file instanceof File
     ? {
@@ -520,6 +567,11 @@ async function payloadFromFormData(formData: FormData): Promise<GenerateExamPayl
     reference_type: String(formData.get("reference_type") ?? "AI") as GenerateExamPayload["reference_type"],
     difficulty: String(formData.get("difficulty") ?? ""),
     pg_options: String(formData.get("pg_options") ?? "") || null,
+    difficulty_distribution: {
+      lots: Number(difficultyDistribution.lots ?? 50),
+      mots: Number(difficultyDistribution.mots ?? 30),
+      hots: Number(difficultyDistribution.hots ?? 20),
+    },
     include_illustration: ["1", "true", "on"].includes(String(formData.get("include_illustration"))),
     cognitive_levels: cognitiveLevels,
     topics,
@@ -553,6 +605,17 @@ function readIndexedObjects<T>(formData: FormData, key: string, map: (value: Rec
     .map(Number)
     .sort((a, b) => a - b)
     .map((index) => map(values[index]));
+}
+
+function readNamedObject(formData: FormData, key: string) {
+  const values: Record<string, string> = {};
+  for (const [field, value] of formData.entries()) {
+    const match = field.match(new RegExp(`^${key}\\[(\\w+)\\]$`));
+    if (match) {
+      values[match[1]] = String(value);
+    }
+  }
+  return values;
 }
 
 function fileToBase64(file: File) {

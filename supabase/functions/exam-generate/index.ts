@@ -196,6 +196,23 @@ function validatePayload(payload: GenerateExamPayload) {
     return "Level kognitif wajib dipilih.";
   }
 
+  if (
+    !payload.difficulty_distribution ||
+    !Number.isFinite(Number(payload.difficulty_distribution.lots)) ||
+    !Number.isFinite(Number(payload.difficulty_distribution.mots)) ||
+    !Number.isFinite(Number(payload.difficulty_distribution.hots))
+  ) {
+    return "Distribusi tingkat kesulitan wajib diisi.";
+  }
+
+  const totalDistribution = Number(payload.difficulty_distribution.lots)
+    + Number(payload.difficulty_distribution.mots)
+    + Number(payload.difficulty_distribution.hots);
+
+  if (totalDistribution !== 100) {
+    return "Total distribusi LOTS, MOTS, dan HOTS harus 100%.";
+  }
+
   if (!Array.isArray(payload.topics) || payload.topics.length === 0) {
     return "Minimal satu topik wajib diisi.";
   }

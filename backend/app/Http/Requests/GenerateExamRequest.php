@@ -33,6 +33,10 @@ class GenerateExamRequest extends FormRequest
             'difficulty' => ['required', 'string', 'max:100'],
             'cognitive_levels' => ['required', 'array', 'min:1'],
             'cognitive_levels.*' => ['required', 'string', 'max:100'],
+            'difficulty_distribution' => ['required', 'array'],
+            'difficulty_distribution.lots' => ['required', 'integer', 'min:0'],
+            'difficulty_distribution.mots' => ['required', 'integer', 'min:0'],
+            'difficulty_distribution.hots' => ['required', 'integer', 'min:0'],
             'pg_options' => ['nullable', 'string', Rule::in([
                 '3 Opsi (A-C)',
                 '3 Opsi (A–C)',
@@ -74,6 +78,12 @@ class GenerateExamRequest extends FormRequest
 
             if ($this->input('reference_type') === 'PDF' && ! $this->hasFile('reference_file')) {
                 $validator->errors()->add('reference_file', 'File PDF wajib diunggah jika memilih sumber PDF.');
+            }
+
+            $distribution = $this->input('difficulty_distribution', []);
+            $distributionTotal = (int) ($distribution['lots'] ?? 0) + (int) ($distribution['mots'] ?? 0) + (int) ($distribution['hots'] ?? 0);
+            if ($distributionTotal !== 100) {
+                $validator->errors()->add('difficulty_distribution', 'Total distribusi LOTS, MOTS, dan HOTS harus 100%.');
             }
         });
     }

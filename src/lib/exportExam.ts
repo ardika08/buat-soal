@@ -50,6 +50,43 @@ const optionLines = (question: Question) =>
     ? Object.entries(question.options).map(([key, value]) => `${key}. ${value}`)
     : [];
 
+const multipleChoiceInstruction = (pgOptions: string | null) => {
+  if (pgOptions?.includes("(A-C)")) {
+    return "Pilihlah satu jawaban yang paling tepat pada pilihan A, B, dan C di bawah ini.";
+  }
+
+  if (pgOptions?.includes("(A-D)")) {
+    return "Pilihlah satu jawaban yang paling tepat pada pilihan A, B, C, dan D di bawah ini.";
+  }
+
+  return "Pilihlah satu jawaban yang paling tepat pada pilihan A, B, C, D, atau E di bawah ini.";
+};
+
+const sectionInstructionByType = (questionType: string, pgOptions: string | null) => {
+  if (questionType === "Pilihan Ganda") {
+    return {
+      heading: "I. Pilihan Ganda",
+      instruction: multipleChoiceInstruction(pgOptions),
+    };
+  }
+
+  if (questionType === "Isian Singkat") {
+    return {
+      heading: "II. Isian",
+      instruction: "Isilah titik-titik berikut dengan jawaban yang benar.",
+    };
+  }
+
+  if (questionType === "Uraian") {
+    return {
+      heading: "III. Uraian",
+      instruction: "Jawablah pertanyaan berikut dengan jawaban yang benar dan jelas.",
+    };
+  }
+
+  return null;
+};
+
 const ILLUSTRATION_SIZE_MM = 30;
 const ILLUSTRATION_SIZE_PX = 113;
 
@@ -141,7 +178,16 @@ export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
   pdf.line(margin, y, pageWidth - margin, y);
   y += 8;
 
+  const renderedSections = new Set<string>();
   for (const [index, question] of questions.entries()) {
+    const section = sectionInstructionByType(question.question_type, exam.pg_options);
+    if (section && !renderedSections.has(question.question_type)) {
+      addText(section.heading, 11, "bold", 6);
+      addText(section.instruction, 10, "normal", 5);
+      renderedSections.add(question.question_type);
+      y += 2;
+    }
+
     addText(`${index + 1}. ${question.question_content}`, 10, "normal", 5);
     optionLines(question).forEach((line) => addText(`   ${line}`, 10, "normal", 5));
     if (question.illustration_image) {
@@ -175,8 +221,27 @@ export async function exportExamDocx(exam: ExamSession, questions: Question[]) {
     ["Kurikulum", exam.curriculum],
   ];
 
+  const renderedSections = new Set<string>();
   const questionParagraphGroups = await Promise.all(questions.map(async (question, index) => {
-    const blocks = [
+    const blocks: Paragraph[] = [];
+    const section = sectionInstructionByType(question.question_type, exam.pg_options);
+
+    if (section && !renderedSections.has(question.question_type)) {
+      blocks.push(
+        new Paragraph({
+          text: section.heading,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 220, after: 120 },
+        }),
+        new Paragraph({
+          text: section.instruction,
+          spacing: { after: 120 },
+        }),
+      );
+      renderedSections.add(question.question_type);
+    }
+
+    blocks.push(
       new Paragraph({
         spacing: { before: 160 },
         children: [
@@ -185,7 +250,7 @@ export async function exportExamDocx(exam: ExamSession, questions: Question[]) {
         ],
       }),
       ...optionLines(question).map((line) => new Paragraph({ text: `   ${line}` })),
-    ];
+    );
 
     if (question.illustration_image) {
       try {

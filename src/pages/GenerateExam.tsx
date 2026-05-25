@@ -25,12 +25,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { examsApi, type GenerateExamPayload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+
+const SUBJECT_OPTIONS_BY_FASE: Record<string, string[]> = {
+  "Fase A": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "SBDP", "Seni Rupa", "Muatan Lokal"],
+  "Fase B": ["Bahasa Indonesia", "Matematika", "IPAS", "PAI", "Bahasa Inggris", "PJOK", "PKN", "SBDP", "Seni Rupa"],
+  "Fase C": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "SBDP", "IPAS", "PJOK", "PKN"],
+  "Fase D": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "Seni Budaya", "Informatika", "Muatan Lokal"],
+  "Fase E": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "IPA", "IPS", "Informatika", "Bahasa & Budaya", "Seni Budaya"],
+  "Fase F": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "IPA", "IPS", "Informatika", "Bahasa & Budaya", "Seni Budaya"],
+};
+
+const COGNITIVE_LEVELS = [
+  "C1 - Mengingat",
+  "C2 - Memahami",
+  "C3 - Mengaplikasikan",
+  "C4 - Menganalisis",
+  "C5 - Mengevaluasi",
+  "C6 - Mencipta",
+];
+
+const DIFFICULTY_DISTRIBUTION = {
+  lots: 50,
+  mots: 30,
+  hots: 20,
+} as const;
 
 export default function GenerateExam() {
   const navigate = useNavigate();
@@ -40,7 +63,8 @@ export default function GenerateExam() {
   const [generateProgress, setGenerateProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedFase, setSelectedFase] = useState("Fase A");
-  const [mapel, setMapel] = useState("");
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState(SUBJECT_OPTIONS_BY_FASE["Fase A"][0]);
+  const [manualSubject, setManualSubject] = useState("");
   const [curriculum, setCurriculum] = useState("Merdeka Deep Learning");
   const [examType, setExamType] = useState("Sumatif Akhir Semester (SAS)");
   const [selectedKelas, setSelectedKelas] = useState("Kelas 1");
@@ -51,15 +75,11 @@ export default function GenerateExam() {
   );
   const [referenceText, setReferenceText] = useState("");
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [difficulty, setDifficulty] = useState("Campuran Berimbang");
   const [pgOptions, setPgOptions] = useState("3 Opsi (A-C)");
   const [withIllustration, setWithIllustration] = useState(true);
-  const [cogLevels, setCogLevels] = useState<string[]>([
-    "C1 - Mengingat",
-    "C2 - Memahami",
-    "C3 - Mengaplikasikan",
-    "C4 - Menganalisis",
-  ]);
+  const difficulty = "Campuran Berimbang";
+  const cogLevels = COGNITIVE_LEVELS;
+  const selectedSubject = manualSubject.trim() || selectedSubjectOption;
 
   const [topics, setTopics] = useState([{ topik: "", tujuan: "" }]);
   const areTopicsComplete = topics.every(
@@ -80,12 +100,6 @@ export default function GenerateExam() {
     const newTopics = [...topics];
     newTopics[index][field] = value;
     setTopics(newTopics);
-  };
-
-  const toggleCogLevel = (level: string) => {
-    setCogLevels((prev) =>
-      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level],
-    );
   };
 
   const [formats, setFormats] = useState([
@@ -178,6 +192,8 @@ export default function GenerateExam() {
 
     setSelectedFase(fase);
     setSelectedKelas(`Kelas ${kelasOptions[fase][0]}`);
+    setSelectedSubjectOption(SUBJECT_OPTIONS_BY_FASE[fase][0]);
+    setManualSubject("");
   };
 
   const handleNext = () => {
@@ -220,6 +236,9 @@ export default function GenerateExam() {
     formData.append("reference_type", payload.reference_type);
     formData.append("difficulty", payload.difficulty);
     formData.append("pg_options", payload.pg_options ?? "");
+    formData.append("difficulty_distribution[lots]", String(payload.difficulty_distribution.lots));
+    formData.append("difficulty_distribution[mots]", String(payload.difficulty_distribution.mots));
+    formData.append("difficulty_distribution[hots]", String(payload.difficulty_distribution.hots));
     formData.append(
       "include_illustration",
       payload.include_illustration ? "1" : "0",
@@ -253,7 +272,8 @@ export default function GenerateExam() {
       curriculum,
       exam_type: examType,
       class_phase: `${selectedFase} - ${selectedKelas}`,
-      subject: mapel,
+      subject: selectedSubject,
+      difficulty_distribution: DIFFICULTY_DISTRIBUTION,
       semester,
       time_allocation: parseInt(timeAllocation),
       reference_type: referenceType,
@@ -599,15 +619,41 @@ export default function GenerateExam() {
                     Mata Pelajaran <span className="text-red-500">*</span>
                   </Label>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Tuliskan nama mata pelajaran secara spesifik.
+                    Pilih mapel sesuai fase. Jika tidak ada di daftar, Anda tetap bisa menulis manual.
                   </p>
                 </div>
-                <Input
-                  value={mapel}
-                  onChange={(e) => setMapel(e.target.value)}
-                  placeholder="Contoh: Matematika, IPAS, Bahasa Indonesia"
-                  className="w-full"
-                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-slate-500">Pilih dari daftar fase</Label>
+                    <Select
+                      value={selectedSubjectOption}
+                      onValueChange={(val) => val && setSelectedSubjectOption(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Mata Pelajaran" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SUBJECT_OPTIONS_BY_FASE[selectedFase].map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-500">Atau isi manual</Label>
+                    <Input
+                      value={manualSubject}
+                      onChange={(e) => setManualSubject(e.target.value)}
+                      placeholder="Contoh: Matematika Peminatan, Mulok Batik"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Mapel yang akan dipakai: <span className="font-semibold text-slate-700">{selectedSubject || "-"}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -817,58 +863,48 @@ export default function GenerateExam() {
                 <div>
                   <Label>Tingkat Kesulitan</Label>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Pilih sesuai kemampuan siswa dan tujuan penilaian Anda.
+                    V1.2 memakai distribusi tetap agar soal lebih proporsional untuk karakter siswa.
                   </p>
                 </div>
-                <Select
-                  value={difficulty}
-                  onValueChange={(val) => val && setDifficulty(val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kesulitan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mudah (LOTS)">Mudah (LOTS)</SelectItem>
-                    <SelectItem value="Sedang (MOTS)">Sedang (MOTS)</SelectItem>
-                    <SelectItem value="Sulit (HOTS)">Sulit (HOTS)</SelectItem>
-                    <SelectItem value="Campuran Berimbang">
-                      Campuran Berimbang
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                  <div className="text-sm font-semibold text-slate-800">
+                    {difficulty}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Sistem akan menyebar soal secara otomatis berdasarkan LOTS, MOTS, dan HOTS.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-3 pt-2">
                 <div>
-                  <Label>Level Kognitif (Taksonomi Bloom)</Label>
+                  <Label>Distribusi Level Kognitif (Taksonomi Bloom)</Label>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Pilih satu atau lebih level. C1-C2 mudah, C3-C4 sedang,
-                    C5-C6 sulit.
+                    LOTS, MOTS, dan HOTS akan menjadi acuan utama saat AI menyusun tingkat soal.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    "C1 - Mengingat",
-                    "C2 - Memahami",
-                    "C3 - Mengaplikasikan",
-                    "C4 - Menganalisis",
-                    "C5 - Mengevaluasi",
-                    "C6 - Mencipta",
-                  ].map((level, i) => (
-                    <div className="flex items-center space-x-2" key={i}>
-                      <Checkbox
-                        id={`c${i + 1}`}
-                        checked={cogLevels.includes(level)}
-                        onCheckedChange={() => toggleCogLevel(level)}
-                      />
-                      <label
-                        htmlFor={`c${i + 1}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {level}
-                      </label>
+                <div className="grid gap-3">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-emerald-900">LOTS</span>
+                      <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-emerald-700">50%</span>
                     </div>
-                  ))}
+                    <p className="mt-2 text-sm text-emerald-800">C1 - Mengingat, C2 - Memahami</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-amber-900">MOTS</span>
+                      <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-amber-700">30%</span>
+                    </div>
+                    <p className="mt-2 text-sm text-amber-800">C3 - Mengaplikasikan, C4 - Menganalisis</p>
+                  </div>
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-rose-900">HOTS</span>
+                      <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-rose-700">20%</span>
+                    </div>
+                    <p className="mt-2 text-sm text-rose-800">C5 - Mengevaluasi, C6 - Mencipta</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -985,7 +1021,7 @@ export default function GenerateExam() {
             onClick={handleNext}
             className="w-32 bg-indigo-600 hover:bg-indigo-700"
             disabled={
-              (step === 1 && !mapel.trim()) ||
+              (step === 1 && !selectedSubject.trim()) ||
               (step === 2 && !areTopicsComplete)
             }
           >
