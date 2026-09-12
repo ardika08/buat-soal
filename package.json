@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:security": "node --test supabase/tests/p0-security.test.mjs",
-    "test:billing": "node --test supabase/tests/billing-status.test.mjs",
+    "test:billing": "node --test supabase/tests/billing-status.test.mjs supabase/tests/billing-return.test.mjs",
+    "test:lifecycle": "node --test supabase/tests/p1-billing-lifecycle.test.mjs",
     "test": "node --test \"supabase/tests/*.test.mjs\""
   },
   "dependencies": {

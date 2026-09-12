@@ -77,3 +77,31 @@ export function mapProviderStatus(providerStatus: string | null | undefined) {
 
 /** Batas waktu invoice (default 24 jam) supaya order pending tidak menggantung selamanya. */
 export const INVOICE_TTL_MINUTES = 24 * 60;
+
+/**
+ * Apakah order ini masih perlu ditanyakan ulang ke Mayar?
+ *
+ * Bukan hanya `pending`: order yang sudah disapu menjadi `expired` oleh batas waktu TTL
+ * tetap harus diperiksa, karena pengguna bisa saja membayar tepat sebelum batas waktu.
+ * Kalau order seperti itu dilewati, uang pengguna masuk tetapi kreditnya tidak pernah
+ * turun. Order `paid`/`failed`/`cancelled` tidak perlu diperiksa lagi.
+ */
+export function shouldReconcileOrder(orderStatus: string, providerOrderId: string | null | undefined) {
+  if (!providerOrderId) {
+    return false;
+  }
+
+  const status = (orderStatus ?? "").trim().toLowerCase();
+  return status === "pending" || status === "expired";
+}
+
+/**
+ * URL kembali setelah pembayaran di Mayar.
+ *
+ * `order_id` WAJIB dibawa: tanpa itu halaman kembali tidak tahu order mana yang harus
+ * diperiksa, sehingga pengguna yang sudah membayar tidak pernah melihat kreditnya masuk.
+ */
+export function buildBillingReturnUrl(baseUrl: string | null | undefined, orderId: number) {
+  const base = (baseUrl ?? "").trim().replace(/\/+$/, "") || "https://soalify.app";
+  return `${base}/billing/return?order_id=${encodeURIComponent(String(orderId))}`;
+}

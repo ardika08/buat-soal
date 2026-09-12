@@ -1,7 +1,8 @@
 name: CI
 
 # Gate rilis: build, lint, dan uji keamanan kredit/pembayaran.
-# Test keamanan berjalan di Postgres lokal (PGlite), jadi tidak butuh Supabase/Docker.
+# Seluruh uji billing/keamanan berjalan di Postgres lokal (PGlite), jadi tidak butuh
+# Supabase, jaringan, maupun Docker — CI bisa membuktikan migration benar tanpa layanan luar.
 on:
   push:
     branches: [main]

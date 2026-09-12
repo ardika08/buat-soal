@@ -1,6 +1,6 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { getMayarInvoice } from "../_shared/mayar.ts";
-import { mapProviderStatus } from "../_shared/billing.ts";
+import { mapProviderStatus, shouldReconcileOrder } from "../_shared/billing.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
 
 /**
@@ -59,7 +59,9 @@ Deno.serve(async (request) => {
 
     let user = toPublicUser(profile);
 
-    if (order.status === "pending" && order.provider_order_id) {
+    // Bukan hanya `pending`: order yang sudah disapu TTL jadi `expired` tetap diperiksa,
+    // karena pembayaran yang masuk tepat sebelum batas waktu tidak boleh hilang.
+    if (shouldReconcileOrder(order.status, order.provider_order_id)) {
       const invoice = await getMayarInvoice(String(order.provider_order_id));
       const providerStatus = mapProviderStatus(invoice.status);
 

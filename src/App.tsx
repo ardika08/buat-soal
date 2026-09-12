@@ -4,6 +4,7 @@ import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./lib/auth";
 import { isSupabaseConfigured } from "./lib/supabase";
 import Dashboard from "./pages/Dashboard";
+import BillingReturn from "./pages/BillingReturn";
 import ExamHistory from "./pages/ExamHistory";
 import GenerateExam from "./pages/GenerateExam";
 import Login from "./pages/Login";
@@ -45,6 +46,7 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id`}
               <Route path="history" element={<ExamHistory />} />
               <Route path="generate" element={<GenerateExam />} />
               <Route path="review" element={<ReviewExam />} />
+              <Route path="billing/return" element={<BillingReturn />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

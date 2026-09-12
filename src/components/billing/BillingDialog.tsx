@@ -102,6 +102,9 @@ export default function BillingDialog({ open, onOpenChange, defaultTab = "topup"
       localStorage.setItem("billing_customer_name", customerName.trim());
       localStorage.setItem("billing_customer_email", customerEmail.trim());
       localStorage.setItem("billing_customer_mobile", customerMobile.trim());
+      // Halaman /billing/return memakai ini sebagai cadangan bila Mayar tidak
+      // mengembalikan parameter order_id di URL kembali.
+      localStorage.setItem("billing_last_order_id", String(res.data.payment.order_id));
       setMessage("Link pembayaran berhasil dibuat. Anda akan diarahkan ke halaman checkout Mayar.");
 
       if (res.data.payment.checkout_url) {

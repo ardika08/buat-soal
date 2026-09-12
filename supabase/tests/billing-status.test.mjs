@@ -23,10 +23,10 @@ async function loadBilling() {
   if (typeof module.mapProviderStatus !== "function") {
     throw new Error("mapProviderStatus tidak ditemukan — periksa supabase/functions/_shared/billing.ts.");
   }
-  return { mapProviderStatus: module.mapProviderStatus, findPackage: module.findPackage, billingPackages: module.billingPackages };
+  return { mapProviderStatus: module.mapProviderStatus, findPackage: module.findPackage, billingPackages: module.billingPackages, INVOICE_TTL_MINUTES: module.INVOICE_TTL_MINUTES };
 }
 
-const { mapProviderStatus, billingPackages } = await loadBilling();
+const { mapProviderStatus, billingPackages, INVOICE_TTL_MINUTES } = await loadBilling();
 
 test("hanya status lunas yang dianggap paid", () => {
   for (const status of ["paid", "PAID", "Paid", "success", "settled"]) {
@@ -85,4 +85,22 @@ test("daftar paket server tidak boleh menyimpang dari yang ditampilkan klien", (
       `durasi ${id} berbeda`,
     );
   }
+});
+
+test("TTL invoice server & SQL tidak boleh menyimpang", () => {
+  // Server memakai INVOICE_TTL_MINUTES untuk masa berlaku invoice; SQL memakai nilainya
+  // sebagai default saat menyapu order menggantung. Kalau keduanya berbeda, order bisa
+  // dianggap kedaluwarsa oleh database padahal invoice Mayar masih hidup.
+  const migration = readFileSync(
+    join(root, "supabase", "migrations", "20260912010000_p1_billing_lifecycle.sql"),
+    "utf8",
+  );
+
+  const match = migration.match(/expire_stale_payment_orders\(p_ttl_minutes integer default (\d+)\)/);
+  assert.ok(match, "default TTL tidak ditemukan di migration P1");
+  assert.equal(
+    Number(match[1]),
+    INVOICE_TTL_MINUTES,
+    "default TTL di migration harus sama dengan INVOICE_TTL_MINUTES",
+  );
 });

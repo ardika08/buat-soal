@@ -1,4 +1,4 @@
-import { findPackage, INVOICE_TTL_MINUTES } from "../_shared/billing.ts";
+import { buildBillingReturnUrl, findPackage, INVOICE_TTL_MINUTES } from "../_shared/billing.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createMayarInvoice } from "../_shared/mayar.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
@@ -110,7 +110,7 @@ Deno.serve(async (request) => {
         name: customerName,
         email: customerEmail,
         mobile: customerMobile,
-        redirectUrl: buildRedirectUrl(request),
+        redirectUrl: buildRedirectUrl(request, Number(order.id)),
         description: `${selectedPackage.name} - ${selectedPackage.credits} kredit Soalify (order #${order.id})`,
         expiredAt: expiredAt.toISOString(),
         items: [
@@ -199,17 +199,18 @@ async function expireStaleOrders(admin: ReturnType<typeof createAdminClient>, pr
     .lt("created_at", new Date(Date.now() - INVOICE_TTL_MINUTES * 60_000).toISOString());
 }
 
-function buildRedirectUrl(request: Request) {
+function buildRedirectUrl(request: Request, orderId: number) {
   const configured = Deno.env.get("APP_BASE_URL");
   if (configured) {
-    return `${configured.replace(/\/$/, "")}/billing/return`;
+    return buildBillingReturnUrl(configured, orderId);
   }
 
   const origin = request.headers.get("Origin") ?? request.headers.get("Referer") ?? "";
   try {
-    return new URL("/billing/return", origin || "https://soalify.app").toString();
+    const base = new URL(origin).origin;
+    return buildBillingReturnUrl(base, orderId);
   } catch {
-    return "https://soalify.app/billing/return";
+    return buildBillingReturnUrl("https://soalify.app", orderId);
   }
 }
 

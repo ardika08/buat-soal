@@ -20,9 +20,10 @@ Buka Supabase Dashboard -> SQL Editor, lalu jalankan **berurutan**:
 ```text
 1. supabase/migrations/20260515000000_initial_buat_soal_schema.sql
 2. supabase/migrations/20260912000000_p0_security_hotfix.sql
+3. supabase/migrations/20260912010000_p1_billing_lifecycle.sql
 ```
 
-Jalankan migration kedua **hanya setelah** migration pertama selesai tanpa error.
+Jalankan setiap migration **hanya setelah** migration sebelumnya selesai tanpa error.
 
 Migration pertama membuat `profiles`, `credit_transactions`, `exam_sessions`, `questions`,
 RLS policy, trigger bonus 10 kredit, dan storage bucket `question-illustrations`.
@@ -38,17 +39,31 @@ Migration P0 (`20260912000000_p0_security_hotfix.sql`) menutup temuan audit:
   — semuanya `SECURITY DEFINER`, memakai `SELECT ... FOR UPDATE`, idempoten, dan hanya
   dapat dieksekusi `service_role`.
 
+Migration P1 (`20260912010000_p1_billing_lifecycle.sql`) melengkapi siklus hidup billing:
+
+- `expire_subscriptions()` — menurunkan premium yang sudah lewat `subscription_expiry` ke
+  `free`. Tanpa ini, status premium tidak pernah turun (hanya akses AI yang dicek saat
+  generate). Kredit yang sudah dibeli **tidak** dihapus — hanya akses premium yang dicabut.
+- `expire_stale_payment_orders(ttl)` — menutup order `pending` yang menggantung
+  (default 1440 menit) agar tabel order tidak menumpuk.
+- `orders_for_reconciliation(limit, days)` — daftar order yang webhook-nya kemungkinan
+  hilang, untuk direkonsiliasi ulang ke Mayar.
+
+Ketiganya hanya dapat dieksekusi `service_role` (klien tidak bisa memicu pembersihan).
+
 ## 3. Verifikasi Migration Secara Lokal (opsional, tanpa Supabase)
 
 Test P0 dijalankan di Postgres lokal via PGlite — tidak perlu Docker:
 
 ```bash
 npm install
-npm run test:security
+npm test
 ```
 
-Harus **14/14 pass**. Test ini menyerang jalur asli (menaikkan kredit lewat update profil,
-memanggil RPC kredit dari klien, webhook berulang) dan memastikan semuanya gagal/aman.
+Harus **48/48 pass** (`npm run test:security` 14 uji, `npm run test:lifecycle` 16 uji,
+`npm run test:billing` 12 uji, sisanya uji anti-drift harga). Test ini menyerang jalur
+asli (menaikkan kredit lewat update profil, memanggil RPC kredit dari klien, webhook
+berulang, order yang dibayar setelah kedaluwarsa) dan memastikan semuanya gagal/aman.
 
 ## 4. Aktifkan Google Auth
 
@@ -81,11 +96,16 @@ supabase functions deploy exam-generate
 supabase functions deploy billing-checkout
 supabase functions deploy billing-payment-status
 supabase functions deploy billing-webhook --no-verify-jwt
+supabase functions deploy billing-reconcile --no-verify-jwt
 ```
 
 Catatan: `billing-webhook` dipanggil Mayar (bukan user), jadi **tidak boleh** memakai
 verifikasi JWT Supabase — aksesnya dijaga oleh `MAYAR_WEBHOOK_SECRET` + verifikasi ulang
 status invoice ke API Mayar.
+
+`billing-reconcile` juga tanpa JWT karena dipanggil penjadwal (cron), bukan user. Aksesnya
+dijaga `BILLING_RECONCILE_TOKEN`, dan endpoint menolak semua permintaan bila token belum
+di-set (fail-closed) — fungsi ini bisa memberi kredit, jadi tidak boleh terbuka by default.
 
 ## 6. Isi Function Secrets
 
@@ -108,6 +128,15 @@ supabase secrets set APP_BASE_URL=https://buatsoal-fast.vercel.app
 
 `MAYAR_WEBHOOK_SECRET` bukan dari Mayar — kita yang membuatnya dan menyisipkannya ke URL
 webhook (lihat langkah 8).
+
+Rekonsiliasi terjadwal (pengaman bila webhook hilang):
+
+```bash
+supabase secrets set BILLING_RECONCILE_TOKEN=RANDOM_TOKEN_PANJANG
+```
+
+Token ini **wajib**. Tanpa nilainya, `billing-reconcile` menolak semua permintaan (503)
+sehingga tidak ada yang bisa memicunya sembarangan.
 
 Jika fitur premium/OpenAI dan ilustrasi dipakai:
 
@@ -162,7 +191,41 @@ Alur pemenuhan benefit:
 5. `billing-payment-status` (dipanggil frontend saat pengguna kembali dari Mayar)
    memakai RPC yang sama sebagai jaring pengaman bila webhook telat/gagal.
 
-## 9. Tes Flow Utama
+## 9. Jadwalkan Rekonsiliasi (wajib untuk siklus hidup billing)
+
+Tanpa langkah ini, premium yang kedaluwarsa **tidak akan pernah turun** ke `free` dan order
+pending akan menumpuk — tidak ada yang menjalankan pembersihannya.
+
+Buat penjadwal yang memanggil `billing-reconcile` tiap 30 menit. Bisa lewat
+[pg_cron](https://supabase.com/docs/guides/database/extensions/pg_cron) di SQL Editor:
+
+```sql
+-- Jalankan setelah ekstensi pg_cron aktif (Database -> Extensions -> pg_cron)
+select cron.schedule(
+  'billing-reconcile',
+  '*/30 * * * *',
+  $$
+  select net.http_post(
+    url := 'https://PROJECT_REF.supabase.co/functions/v1/billing-reconcile',
+    headers := '{"Content-Type":"application/json","x-reconcile-token":"BILLING_RECONCILE_TOKEN"}'::jsonb
+  );
+  $$
+);
+```
+
+Alternatif tanpa pg_cron: cron eksternal (GitHub Actions / cron-job.org) yang mengirim
+`POST` ke URL yang sama dengan header `x-reconcile-token`.
+
+Setiap pemanggilan melakukan tiga hal berurutan:
+
+1. `expire_subscriptions` — premium lewat masa berlaku diturunkan ke `free`;
+2. `expire_stale_payment_orders` — order pending lebih tua dari 24 jam ditutup;
+3. rekonsiliasi tiap order pending/expired ke Mayar; order yang ternyata sudah lunas
+   dipenuhi lewat RPC idempoten yang sama.
+
+Hasilnya bisa dicek dari respons JSON (`sweeps`, `fulfilled`, `errors`).
+
+## 10. Tes Flow Utama
 
 Tes berurutan:
 
@@ -176,3 +239,8 @@ Tes berurutan:
 7. Top up: pastikan kredit **tidak** bertambah sebelum pembayaran benar-benar lunas
 8. Setelah bayar di Mayar, pastikan kredit bertambah **tepat sekali** (refresh berkali-kali
    tidak menambah kredit lagi)
+9. Pastikan halaman `/billing/return` menampilkan status pesanan (bukan dashboard tanpa
+   penjelasan) setelah kembali dari Mayar
+10. Uji langganan kedaluwarsa: set `subscription_expiry` ke waktu lampau, panggil
+    `billing-reconcile`, lalu pastikan `subscription_tier` turun ke `free` **tanpa**
+    mengurangi `credits_balance`
