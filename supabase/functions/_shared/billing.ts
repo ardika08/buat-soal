@@ -38,3 +38,42 @@ export const billingPackages = {
 } as const;
 
 export type BillingPackageId = keyof typeof billingPackages;
+
+export type BillingPackage = (typeof billingPackages)[BillingPackageId];
+
+export function findPackage(packageId: string): BillingPackage | null {
+  if (!packageId || !Object.prototype.hasOwnProperty.call(billingPackages, packageId)) {
+    return null;
+  }
+  return billingPackages[packageId as BillingPackageId];
+}
+
+/**
+ * Status pembayaran yang diakui Mayar untuk invoice (`unpaid`, `paid`, `expired`, ...)
+ * dipetakan ke status internal kita.
+ *
+ * Sengaja ketat: apa pun yang tidak dikenali jatuh ke 'pending', sehingga tidak mungkin
+ * memberi kredit hanya karena string status yang aneh. Spasi/newline di sekeliling
+ * dinormalisasi dulu supaya "paid\n" tetap dianggap lunas (bukan gagal dipenuhi).
+ */
+export function mapProviderStatus(providerStatus: string | null | undefined) {
+  switch ((providerStatus ?? "").trim().toLowerCase()) {
+    case "paid":
+    case "success":
+    case "settled":
+      return "paid" as const;
+    case "expired":
+      return "expired" as const;
+    case "failed":
+      return "failed" as const;
+    case "cancelled":
+    case "canceled":
+    case "closed":
+      return "cancelled" as const;
+    default:
+      return "pending" as const;
+  }
+}
+
+/** Batas waktu invoice (default 24 jam) supaya order pending tidak menggantung selamanya. */
+export const INVOICE_TTL_MINUTES = 24 * 60;

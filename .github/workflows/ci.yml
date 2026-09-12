@@ -1,0 +1,33 @@
+name: CI
+
+# Gate rilis: build, lint, dan uji keamanan kredit/pembayaran.
+# Test keamanan berjalan di Postgres lokal (PGlite), jadi tidak butuh Supabase/Docker.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Security tests (kredit & pembayaran)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint (informational)
+        run: npm run lint
+        continue-on-error: true

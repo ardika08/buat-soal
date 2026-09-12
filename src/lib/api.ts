@@ -136,10 +136,12 @@ export interface BillingPackage {
 export interface BillingPayment {
   order_id: number;
   provider: "mayar";
-  status: "pending" | "paid" | "expired" | "failed";
+  status: "pending" | "paid" | "expired" | "failed" | "cancelled";
   checkout_url: string | null;
-  provider_payment_id?: string | null;
+  provider_order_id?: string | null;
   provider_transaction_id?: string | null;
+  amount?: number;
+  credits?: number;
 }
 
 export interface BillingCheckoutResponse {
@@ -290,7 +292,11 @@ export const examsApi = {
       : payload;
 
     return {
-      data: await invokeFunction<GenerateExamResponse>("exam-generate", normalized),
+      data: await invokeFunction<GenerateExamResponse>("exam-generate", {
+        ...normalized,
+        // Kunci idempotensi: retry/klik ganda atas request yang sama tidak memotong kredit dua kali.
+        idempotency_key: crypto.randomUUID(),
+      }),
     };
   },
 

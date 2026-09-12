@@ -21,6 +21,18 @@ interface ReviewState {
   creditsRemaining: number;
 }
 
+/** Perbandingan dangkal field yang bisa diedit, dipakai untuk mendeteksi perubahan nyata. */
+function questionsEqual(a: Question, b: Question) {
+  return a.question_type === b.question_type
+    && a.cognitive_level === b.cognitive_level
+    && a.difficulty === b.difficulty
+    && a.question_content === b.question_content
+    && a.correct_answer === b.correct_answer
+    && (a.illustration_prompt ?? "") === (b.illustration_prompt ?? "")
+    && (a.illustration_image ?? "") === (b.illustration_image ?? "")
+    && JSON.stringify(a.options ?? null) === JSON.stringify(b.options ?? null);
+}
+
 export default function ReviewExam() {
   const location = useLocation();
   const state = location.state as ReviewState | null;
@@ -94,35 +106,62 @@ export default function ReviewExam() {
     setIsEditMode(false);
   };
 
+  /**
+   * Menyimpan hanya soal yang benar-benar berubah, satu per satu (bukan Promise.all).
+   *
+   * Sebelumnya semua soal dikirim paralel: satu kegagalan di tengah membuat sebagian
+   * tersimpan sebagian tidak, sementara pesannya cuma "gagal menyimpan" tanpa tahu mana
+   * yang gagal. Sekarang urut + fail-fast, dan nomor soal yang gagal disebut eksplisit.
+   */
   const saveEdits = async () => {
     if (!loadedState) return;
+
+    const changedQuestions = draftQuestions.filter((draft) => {
+      const original = loadedState.questions.find((question) => question.id === draft.id);
+      return original ? !questionsEqual(original, draft) : false;
+    });
+
+    if (changedQuestions.length === 0) {
+      setIsEditMode(false);
+      setSaveMessage("Tidak ada perubahan untuk disimpan.");
+      return;
+    }
 
     setIsSaving(true);
     setSaveMessage(null);
 
+    const saved: Question[] = [];
     try {
-      const savedQuestions = await Promise.all(
-        draftQuestions.map((question) =>
-          examsApi.updateQuestion(loadedState.examId, question.id, {
-            question_type: question.question_type,
-            cognitive_level: question.cognitive_level,
-            difficulty: question.difficulty,
-            question_content: question.question_content,
-            options: question.options,
-            correct_answer: question.correct_answer,
-            illustration_prompt: question.illustration_prompt,
-            illustration_image: question.illustration_image,
-          }).then((res) => res.data.question),
-        ),
-      );
+      for (const question of changedQuestions) {
+        const res = await examsApi.updateQuestion(loadedState.examId, question.id, {
+          question_type: question.question_type,
+          cognitive_level: question.cognitive_level,
+          difficulty: question.difficulty,
+          question_content: question.question_content,
+          options: question.options,
+          correct_answer: question.correct_answer,
+          illustration_prompt: question.illustration_prompt,
+          illustration_image: question.illustration_image,
+        });
+        saved.push(res.data.question);
+      }
 
-      const sortedQuestions = savedQuestions.sort((a, b) => a.order_number - b.order_number);
-      setLoadedState({ ...loadedState, questions: sortedQuestions });
-      setDraftQuestions(sortedQuestions);
+      const merged = loadedState.questions
+        .map((question) => saved.find((item) => item.id === question.id) ?? question)
+        .sort((a, b) => a.order_number - b.order_number);
+
+      setLoadedState({ ...loadedState, questions: merged });
+      setDraftQuestions(merged);
       setIsEditMode(false);
-      setSaveMessage("Perubahan soal berhasil disimpan.");
-    } catch {
-      setSaveMessage("Gagal menyimpan perubahan. Periksa koneksi Supabase lalu coba lagi.");
+      setSaveMessage(`Perubahan ${saved.length} soal berhasil disimpan.`);
+    } catch (error) {
+      const failed = changedQuestions[saved.length];
+      setSaveMessage(
+        saved.length > 0
+          ? `Gagal menyimpan soal nomor ${failed?.order_number ?? "-"}. ${saved.length} soal sebelumnya sudah tersimpan — ulangi simpan untuk melanjutkan.`
+          : "Gagal menyimpan perubahan. Periksa koneksi Supabase lalu coba lagi.",
+      );
+      console.error("[ReviewExam] saveEdits", error);
     } finally {
       setIsSaving(false);
     }
@@ -267,18 +306,14 @@ export default function ReviewExam() {
                       {q.order_number}
                     </div>
                     <div className="min-w-0 flex-1">
-                      {isEditMode ? (
-                        <Input
-                          value={q.question_content.split("\n")[0]}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) => updateDraftQuestion(q.id, { question_content: event.target.value })}
-                          className="h-8 bg-white"
-                        />
-                      ) : (
-                        <p className="font-medium text-slate-800 text-sm line-clamp-1">
-                          {q.question_content.split("\n")[0]}
-                        </p>
-                      )}
+                      {/* Header hanya menampilkan pratinjau satu baris. Sebelumnya header ini
+                          adalah Input yang nilainya `question_content.split("\n")[0]`, sehingga
+                          mengetik satu karakter di sini menimpa seluruh isi soal (termasuk baris
+                          opsi/uraian yang sudah benar). Edit isi soal hanya lewat Textarea di
+                          panel yang sudah dibuka. */}
+                      <p className="font-medium text-slate-800 text-sm line-clamp-1">
+                        {q.question_content.split("\n")[0]}
+                      </p>
                       <div className="flex gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{q.question_type}</span>
                         <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{q.cognitive_level}</span>
