@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -8,7 +8,7 @@ if (!isSupabaseConfigured) {
   console.warn("VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY belum dikonfigurasi.");
 }
 
-export const supabase: any = isSupabaseConfigured
+export const supabase: SupabaseClient = isSupabaseConfigured
   ? createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       auth: {
         persistSession: true,
@@ -16,4 +16,6 @@ export const supabase: any = isSupabaseConfigured
         detectSessionInUrl: true,
       },
     })
-  : null;
+  : // Belum dikonfigurasi: klien null-asli agar pemanggil yang salah tetap gagal jelas,
+    // bukan menabrak API palsu. Dipakai hanya saat env belum di-set (dev tanpa .env).
+    (null as unknown as SupabaseClient);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { BrainCircuit, AlertCircle } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { BASE_URL } from "@/lib/api";
 
 declare global {
@@ -30,10 +30,14 @@ export default function Login() {
   const navigate = useNavigate();
   const { user, loginWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  // Konfigurasi kurang adalah kondisi statis, bukan kejadian: diturunkan saat render
+  // supaya tidak memicu render berantai lewat setState di dalam effect.
+  const configError = GOOGLE_CLIENT_ID
+    ? null
+    : "VITE_GOOGLE_CLIENT_ID belum dikonfigurasi di frontend.";
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
-      setError("VITE_GOOGLE_CLIENT_ID belum dikonfigurasi di frontend.");
       return;
     }
 
@@ -117,10 +121,10 @@ export default function Login() {
           </div>
         </div>
 
-        {error && (
+        {(configError ?? error) && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span>{configError ?? error}</span>
           </div>
         )}
 

@@ -1,6 +1,6 @@
 name: CI
 
-# Gate rilis: build, lint, dan uji keamanan kredit/pembayaran.
+# Gate rilis: install bersih, lint, uji keamanan kredit/pembayaran, build, dan audit dependency.
 # Seluruh uji billing/keamanan berjalan di Postgres lokal (PGlite), jadi tidak butuh
 # Supabase, jaringan, maupun Docker — CI bisa membuktikan migration benar tanpa layanan luar.
 on:
@@ -20,15 +20,22 @@ jobs:
           node-version: "24"
           cache: npm
 
-      - name: Install dependencies
-        run: npm install --ignore-scripts
+      # `npm ci` (bukan `npm install`) sengaja dipakai: perintah ini gagal bila
+      # package.json dan package-lock.json tidak sinkron, sehingga lockfile yang
+      # rusak ketahuan di CI, bukan saat deploy produksi.
+      - name: Install dependencies (lockfile harus sinkron)
+        run: npm ci --ignore-scripts
 
-      - name: Security tests (kredit & pembayaran)
-        run: npm test
+      - name: Lint
+        run: npm run lint
 
-      - name: Build
+      - name: Typecheck & build
         run: npm run build
 
-      - name: Lint (informational)
-        run: npm run lint
-        continue-on-error: true
+      - name: Security & billing tests (PGlite)
+        run: npm test
+
+      # Ambang `high`: kerentanan high/critical menggagalkan gate, sedangkan low/moderate
+      # yang belum ada perbaikinya tidak memblokir rilis.
+      - name: Audit dependency produksi
+        run: npm audit --omit=dev --audit-level=high

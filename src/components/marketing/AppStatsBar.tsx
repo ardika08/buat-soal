@@ -49,7 +49,6 @@ export default function AppStatsBar() {
   useEffect(() => {
     let isActive = true;
     let retryTimeoutId: number | undefined;
-    let refreshIntervalId: number | undefined;
 
     const loadStats = () => {
       if (!supabase) {
@@ -80,7 +79,7 @@ export default function AppStatsBar() {
     };
 
     loadStats();
-    refreshIntervalId = window.setInterval(loadStats, 60000);
+    const refreshIntervalId = window.setInterval(loadStats, 60000);
 
     return () => {
       isActive = false;
@@ -89,9 +88,7 @@ export default function AppStatsBar() {
         window.clearTimeout(retryTimeoutId);
       }
 
-      if (refreshIntervalId) {
-        window.clearInterval(refreshIntervalId);
-      }
+      window.clearInterval(refreshIntervalId);
     };
   }, []);
 

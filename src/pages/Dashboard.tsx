@@ -7,7 +7,7 @@ import BillingDialog from "@/components/billing/BillingDialog";
 import SubscriptionInfoDialog from "@/components/billing/SubscriptionInfoDialog";
 import DeleteExamDialog from "@/components/exams/DeleteExamDialog";
 import ExamHistoryItem from "@/components/exams/ExamHistoryItem";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { examsApi, type ExamSession } from "@/lib/api";
 import { markSubscriptionInfoSeen, shouldShowSubscriptionInfo } from "@/lib/session-flags";
 

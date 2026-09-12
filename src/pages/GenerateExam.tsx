@@ -29,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { examsApi, type GenerateExamPayload } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 
 const SUBJECT_OPTIONS_BY_FASE: Record<string, string[]> = {
   "Fase A": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "SBDP", "Seni Rupa", "Muatan Lokal"],

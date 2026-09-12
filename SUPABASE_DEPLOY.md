@@ -53,17 +53,35 @@ Ketiganya hanya dapat dieksekusi `service_role` (klien tidak bisa memicu pembers
 
 ## 3. Verifikasi Migration Secara Lokal (opsional, tanpa Supabase)
 
-Test P0 dijalankan di Postgres lokal via PGlite — tidak perlu Docker:
+Test dijalankan di Postgres lokal via PGlite — tidak perlu Docker:
 
 ```bash
-npm install
+npm ci
 npm test
 ```
 
-Harus **48/48 pass** (`npm run test:security` 14 uji, `npm run test:lifecycle` 16 uji,
-`npm run test:billing` 12 uji, sisanya uji anti-drift harga). Test ini menyerang jalur
-asli (menaikkan kredit lewat update profil, memanggil RPC kredit dari klien, webhook
-berulang, order yang dibayar setelah kedaluwarsa) dan memastikan semuanya gagal/aman.
+Harus **71/71 pass** (`npm run test:security` 14 uji, `npm run test:lifecycle` 16 uji,
+`npm run test:billing` 12 uji, `npm run test:api` 22 uji pemetaan data, sisanya uji
+anti-drift harga). Test ini menyerang jalur asli (menaikkan kredit lewat update profil,
+memanggil RPC kredit dari klien, webhook berulang, order yang dibayar setelah kedaluwarsa)
+dan memastikan semuanya gagal/aman.
+
+### Gate rilis
+
+`npm ci` dipakai (bukan `npm install`) karena perintah itu **gagal bila `package.json`
+dan `package-lock.json` tidak sinkron** — kondisi yang membuat deploy produksi berbeda
+dari yang diuji. Sebelum rilis, keempat perintah ini harus lulus:
+
+```bash
+npm ci --ignore-scripts          # lockfile sinkron
+npm run lint                     # 0 error, 0 warning
+npm run build                    # typecheck + build bersih
+npm test                         # 71/71 lulus
+npm audit --omit=dev --audit-level=high   # tanpa kerentanan high/critical
+```
+
+Semuanya sudah berjalan otomatis di `.github/workflows/ci.yml` untuk setiap push ke
+`main` dan setiap pull request.
 
 ## 4. Aktifkan Google Auth
 

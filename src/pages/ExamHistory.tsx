@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import DeleteExamDialog from "@/components/exams/DeleteExamDialog";
@@ -14,10 +14,10 @@ export default function ExamHistory() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadHistory = async (targetPage = page) => {
-    setIsLoading(true);
-    setError(null);
-
+  // Tidak menyalakan loading di sini: pemanggil yang tahu kapan mulai memuat (klik
+  // halaman, hapus) yang menyalakannya. Effect jadi hanya menunggu, tanpa setState
+  // sinkron di dalamnya.
+  const loadHistory = useCallback(async (targetPage: number) => {
     try {
       const res = await examsApi.list(targetPage);
       setHistory(res.data);
@@ -27,11 +27,21 @@ export default function ExamHistory() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void loadHistory(page);
-  }, [page]);
+    // Dibungkus IIFE async: memberi tahu aturan React bahwa setState terjadi
+    // setelah await, bukan sinkron di badan effect.
+    void (async () => {
+      await loadHistory(page);
+    })();
+  }, [page, loadHistory]);
+
+  const goToPage = (targetPage: number) => {
+    setIsLoading(true);
+    setError(null);
+    setPage(targetPage);
+  };
 
   const confirmDeleteExam = async () => {
     if (!deleteTarget) {
@@ -39,6 +49,7 @@ export default function ExamHistory() {
     }
 
     setIsDeleting(true);
+    setIsLoading(true);
 
     try {
       await examsApi.delete(deleteTarget.id);
@@ -46,12 +57,18 @@ export default function ExamHistory() {
 
       const currentItemCount = history?.data.length ?? 0;
       const nextPage = currentItemCount <= 1 && page > 1 ? page - 1 : page;
-      await loadHistory(nextPage);
+
+      // Kalau halaman berubah, effect yang memuat ulang; memanggil ulang di sini
+      // membuat dua permintaan untuk data yang sama.
+      if (nextPage !== page) {
+        setPage(nextPage);
+      } else {
+        await loadHistory(page);
+      }
     } finally {
       setIsDeleting(false);
     }
   };
-
   const exams = history?.data ?? [];
 
   return (
@@ -106,7 +123,7 @@ export default function ExamHistory() {
           <Button
             variant="outline"
             disabled={page <= 1 || isLoading}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() => goToPage(Math.max(1, page - 1))}
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Sebelumnya
@@ -117,7 +134,7 @@ export default function ExamHistory() {
           <Button
             variant="outline"
             disabled={page >= history.last_page || isLoading}
-            onClick={() => setPage((current) => Math.min(history.last_page, current + 1))}
+            onClick={() => goToPage(Math.min(history.last_page, page + 1))}
           >
             Berikutnya
             <ChevronRight className="w-4 h-4 ml-1" />

@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Clock, Loader2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { billingApi, type BillingPayment } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import {
   describeOutcome,
   resolveOrderId,

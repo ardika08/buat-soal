@@ -1,23 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { authApi, type AuthUser } from "@/lib/api";
+import { AuthContext, type AuthContextValue } from "@/lib/auth-context";
 import { clearSubscriptionInfoSession, markSubscriptionInfoPending } from "@/lib/session-flags";
-
-interface AuthContextValue {
-  user: AuthUser | null;
-  isLoading: boolean;
-  loginWithGoogle: (credential: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<AuthUser | null>;
-  updateUser: (patch: Partial<AuthUser>) => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const stored = localStorage.getItem("auth_user");
     return stored ? JSON.parse(stored) as AuthUser : null;
   });
+  // Nilai awal sudah mencerminkan ada/tidaknya token, jadi cabang "tanpa token"
+  // di effect tidak perlu mematikan loading lagi.
   const [isLoading, setIsLoading] = useState(Boolean(localStorage.getItem("auth_token")));
 
   const persistUser = useCallback((nextUser: AuthUser | null) => {
@@ -46,7 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("auth_token");
 
     if (!token) {
-      setIsLoading(false);
       return;
     }
 
@@ -59,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistUser(null);
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [persistUser]);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
@@ -96,14 +87,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }), [user, isLoading, refreshUser, persistUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
 }

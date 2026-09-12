@@ -37,9 +37,21 @@ export default function ReviewExam() {
   const location = useLocation();
   const state = location.state as ReviewState | null;
   const examIdFromQuery = new URLSearchParams(location.search).get("exam");
-  const [loadedState, setLoadedState] = useState<ReviewState | null>(state);
-  const [isLoading, setIsLoading] = useState(!state && Boolean(examIdFromQuery));
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Satu state untuk siklus muat: tidak perlu menyalakan loading di dalam effect,
+  // dan `loadError` tidak bisa lagi bertabrakan dengan `loadedState`.
+  const [loadState, setLoadState] = useState<
+    | { kind: "loading" }
+    | { kind: "ready"; data: ReviewState }
+    | { kind: "error"; message: string }
+  >(() => {
+    if (state) {
+      return { kind: "ready", data: state };
+    }
+    if (examIdFromQuery) {
+      return { kind: "loading" };
+    }
+    return { kind: "error", message: "Tidak ada data soal." };
+  });
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftQuestions, setDraftQuestions] = useState<Question[]>(state?.questions ?? []);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,19 +65,20 @@ export default function ReviewExam() {
       return;
     }
 
-    setIsLoading(true);
     examsApi.get(Number(examIdFromQuery))
       .then((res) => {
-        setLoadedState({
-          examId: Number(examIdFromQuery),
-          exam: res.data.exam,
-          questions: res.data.questions,
-          creditsRemaining: 0,
+        setLoadState({
+          kind: "ready",
+          data: {
+            examId: Number(examIdFromQuery),
+            exam: res.data.exam,
+            questions: res.data.questions,
+            creditsRemaining: 0,
+          },
         });
         setDraftQuestions(res.data.questions);
       })
-      .catch(() => setLoadError("Gagal memuat data soal dari server."))
-      .finally(() => setIsLoading(false));
+      .catch(() => setLoadState({ kind: "error", message: "Gagal memuat data soal dari server." }));
   }, [examIdFromQuery, state]);
 
   const toggleExpand = (id: number) => {
@@ -93,15 +106,15 @@ export default function ReviewExam() {
   };
 
   const startEditMode = () => {
-    if (!loadedState) return;
-    setDraftQuestions(loadedState.questions);
-    setExpandedIds(new Set(loadedState.questions.map((question) => question.order_number)));
+    if (loadState.kind !== "ready") return;
+    setDraftQuestions(loadState.data.questions);
+    setExpandedIds(new Set(loadState.data.questions.map((question) => question.order_number)));
     setSaveMessage(null);
     setIsEditMode(true);
   };
 
   const cancelEditMode = () => {
-    setDraftQuestions(loadedState?.questions ?? []);
+    setDraftQuestions(loadState.kind === "ready" ? loadState.data.questions : []);
     setSaveMessage(null);
     setIsEditMode(false);
   };
@@ -114,7 +127,8 @@ export default function ReviewExam() {
    * yang gagal. Sekarang urut + fail-fast, dan nomor soal yang gagal disebut eksplisit.
    */
   const saveEdits = async () => {
-    if (!loadedState) return;
+    if (loadState.kind !== "ready") return;
+    const loadedState = loadState.data;
 
     const changedQuestions = draftQuestions.filter((draft) => {
       const original = loadedState.questions.find((question) => question.id === draft.id);
@@ -150,7 +164,7 @@ export default function ReviewExam() {
         .map((question) => saved.find((item) => item.id === question.id) ?? question)
         .sort((a, b) => a.order_number - b.order_number);
 
-      setLoadedState({ ...loadedState, questions: merged });
+      setLoadState({ kind: "ready", data: { ...loadedState, questions: merged } });
       setDraftQuestions(merged);
       setIsEditMode(false);
       setSaveMessage(`Perubahan ${saved.length} soal berhasil disimpan.`);
@@ -167,7 +181,7 @@ export default function ReviewExam() {
     }
   };
 
-  if (isLoading) {
+  if (loadState.kind === "loading") {
     return (
       <div className="max-w-5xl mx-auto rounded-xl border bg-white p-6 text-center text-slate-500">
         Memuat data soal...
@@ -176,11 +190,11 @@ export default function ReviewExam() {
   }
 
   // Fallback: if accessed directly without state or query id, show placeholder
-  if (!loadedState) {
+  if (loadState.kind === "error") {
     return (
       <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-          <p className="text-amber-800 font-semibold">{loadError ?? "Tidak ada data soal."}</p>
+          <p className="text-amber-800 font-semibold">{loadState.message}</p>
           <p className="text-amber-600 text-sm mt-1">Silakan buat soal terlebih dahulu dari halaman Generate.</p>
           <Link to="/generate">
             <Button className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">Buat Soal Baru</Button>
@@ -190,6 +204,7 @@ export default function ReviewExam() {
     );
   }
 
+  const loadedState = loadState.data;
   const { exam, questions, creditsRemaining } = loadedState;
   const visibleQuestions = isEditMode ? draftQuestions : questions;
 

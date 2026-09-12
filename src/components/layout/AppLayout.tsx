@@ -3,7 +3,7 @@ import { BrainCircuit, Coins, LogOut, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppStatsBar from "@/components/marketing/AppStatsBar";
 import SalesProofWidget from "@/components/marketing/SalesProofWidget";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AppLayout() {
   const location = useLocation();

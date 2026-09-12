@@ -27,85 +27,36 @@ class ApiError extends Error {
   }
 }
 
-export interface AuthUser {
-  id: number;
-  name: string;
-  email: string;
-  subscription_tier: "free" | "basic" | "premium";
-  credits_balance: number;
-  subscription_expiry: string | null;
-}
-
-export interface ExamFormat {
-  id: string;
-  label: string;
-  count: number;
-}
-
-export interface Topic {
-  topik: string;
-  tujuan: string;
-}
-
-export interface DifficultyDistribution {
-  lots: number;
-  mots: number;
-  hots: number;
-}
-
-export interface GenerateExamPayload {
-  curriculum: string;
-  exam_type: string;
-  class_phase: string;
-  subject: string;
-  semester: string;
-  time_allocation: number;
-  reference_type: "AI" | "PDF" | "Manual";
-  reference_text?: string;
-  reference_file?: File | null;
-  difficulty: string;
-  cognitive_levels: string[];
-  difficulty_distribution: DifficultyDistribution;
-  pg_options: string | null;
-  include_illustration: boolean;
-  topics: Topic[];
-  formats: ExamFormat[];
-}
-
-export interface Question {
-  id: number;
-  exam_session_id: number;
-  order_number: number;
-  question_type: string;
-  cognitive_level: string;
-  difficulty: string;
-  question_content: string;
-  options: Record<string, string> | null;
-  correct_answer: string;
-  illustration_prompt: string | null;
-  illustration_image: string | null;
-}
-
-export interface ExamSession {
-  id: number;
-  user_id: number;
-  curriculum: string;
-  exam_type: string;
-  class_phase: string;
-  subject: string;
-  semester: string;
-  time_allocation: number;
-  reference_type: string;
-  difficulty: string;
-  cognitive_levels: string[];
-  pg_options: string | null;
-  include_illustration: boolean;
-  topics: Topic[];
-  credits_consumed: number;
-  questions_count?: number;
-  created_at: string;
-  questions?: Question[];
-}
+// Tipe dan pemetaan data tinggal di ./apiMappers agar bisa diuji tanpa browser.
+// Di-ekspor ulang dari sini supaya seluruh kode yang sudah ada tetap jalan.
+export type {
+  AuthUser,
+  ExamFormat,
+  Topic,
+  DifficultyDistribution,
+  GenerateExamPayload,
+  Question,
+  ExamSession,
+  SubscriptionTier,
+} from "@/lib/apiMappers";
+export {
+  formatUser,
+  normalizeExam,
+  normalizeQuestion,
+  payloadFromFormData,
+  DEFAULT_TIME_ALLOCATION,
+  DEFAULT_DIFFICULTY_DISTRIBUTION,
+} from "@/lib/apiMappers";
+import {
+  formatUser,
+  normalizeExam,
+  normalizeQuestion,
+  payloadFromFormData,
+  type AuthUser,
+  type ExamSession,
+  type GenerateExamPayload,
+  type Question,
+} from "@/lib/apiMappers";
 
 export interface PaginatedExams {
   data: (ExamSession & { questions_count?: number })[];
@@ -474,56 +425,7 @@ async function currentProfile() {
   throw new ApiError("Profil pengguna belum tersedia di Supabase.", 404);
 }
 
-function formatUser(profile: Record<string, unknown>): AuthUser {
-  return {
-    id: Number(profile.id),
-    name: String(profile.name),
-    email: String(profile.email),
-    subscription_tier: profile.subscription_tier as AuthUser["subscription_tier"],
-    credits_balance: Number(profile.credits_balance),
-    subscription_expiry: profile.subscription_expiry ? String(profile.subscription_expiry) : null,
-  };
-}
-
-function normalizeExam(exam: Record<string, unknown>): ExamSession {
-  return {
-    id: Number(exam.id),
-    user_id: Number(exam.user_id),
-    curriculum: String(exam.curriculum),
-    exam_type: String(exam.exam_type),
-    class_phase: String(exam.class_phase),
-    subject: String(exam.subject),
-    semester: String(exam.semester),
-    time_allocation: Number(exam.time_allocation),
-    reference_type: String(exam.reference_type),
-    difficulty: String(exam.difficulty),
-    cognitive_levels: Array.isArray(exam.cognitive_levels) ? exam.cognitive_levels as string[] : [],
-    pg_options: exam.pg_options ? String(exam.pg_options) : null,
-    include_illustration: Boolean(exam.include_illustration),
-    topics: Array.isArray(exam.topics) ? exam.topics as Topic[] : [],
-    credits_consumed: Number(exam.credits_consumed),
-    created_at: String(exam.created_at),
-  };
-}
-
-function normalizeQuestion(question: Record<string, unknown>): Question {
-  return {
-    id: Number(question.id),
-    exam_session_id: Number(question.exam_session_id),
-    order_number: Number(question.order_number),
-    question_type: String(question.question_type),
-    cognitive_level: String(question.cognitive_level ?? ""),
-    difficulty: String(question.difficulty ?? ""),
-    question_content: String(question.question_content),
-    options: question.options && typeof question.options === "object"
-      ? question.options as Record<string, string>
-      : null,
-    correct_answer: String(question.correct_answer),
-    illustration_prompt: question.illustration_prompt ? String(question.illustration_prompt) : null,
-    illustration_image: question.illustration_image ? String(question.illustration_image) : null,
-  };
-}
-
+/** Melempar ApiError berisi pesan asli dari Edge Function, bukan pesan generik. */
 async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, {
     body: body as Record<string, unknown>,
@@ -541,97 +443,4 @@ async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
   }
 
   return data as T;
-}
-
-async function payloadFromFormData(formData: FormData): Promise<GenerateExamPayload & { reference_file_name?: string; reference_file_base64?: string }> {
-  const formats = readIndexedObjects<ExamFormat>(formData, "formats", (value) => ({
-    id: String(value.id ?? ""),
-    label: String(value.label ?? ""),
-    count: Number(value.count ?? 0),
-  }));
-  const topics = readIndexedObjects<Topic>(formData, "topics", (value) => ({
-    topik: String(value.topik ?? ""),
-    tujuan: String(value.tujuan ?? ""),
-  }));
-  const cognitiveLevels = readIndexedArray(formData, "cognitive_levels");
-  const difficultyDistribution = readNamedObject(formData, "difficulty_distribution");
-  const file = formData.get("reference_file");
-  const filePayload = file instanceof File
-    ? {
-        reference_file_name: file.name,
-        reference_file_base64: await fileToBase64(file),
-      }
-    : {};
-
-  return {
-    curriculum: String(formData.get("curriculum") ?? ""),
-    exam_type: String(formData.get("exam_type") ?? ""),
-    class_phase: String(formData.get("class_phase") ?? ""),
-    subject: String(formData.get("subject") ?? ""),
-    semester: String(formData.get("semester") ?? ""),
-    time_allocation: Number(formData.get("time_allocation") ?? 90),
-    reference_type: String(formData.get("reference_type") ?? "AI") as GenerateExamPayload["reference_type"],
-    difficulty: String(formData.get("difficulty") ?? ""),
-    pg_options: String(formData.get("pg_options") ?? "") || null,
-    difficulty_distribution: {
-      lots: Number(difficultyDistribution.lots ?? 50),
-      mots: Number(difficultyDistribution.mots ?? 30),
-      hots: Number(difficultyDistribution.hots ?? 20),
-    },
-    include_illustration: ["1", "true", "on"].includes(String(formData.get("include_illustration"))),
-    cognitive_levels: cognitiveLevels,
-    topics,
-    formats,
-    ...filePayload,
-  };
-}
-
-function readIndexedArray(formData: FormData, key: string) {
-  const values: string[] = [];
-  for (const [field, value] of formData.entries()) {
-    const match = field.match(new RegExp(`^${key}\\[(\\d+)\\]$`));
-    if (match) {
-      values[Number(match[1])] = String(value);
-    }
-  }
-  return values.filter(Boolean);
-}
-
-function readIndexedObjects<T>(formData: FormData, key: string, map: (value: Record<string, string>) => T) {
-  const values: Record<number, Record<string, string>> = {};
-  for (const [field, value] of formData.entries()) {
-    const match = field.match(new RegExp(`^${key}\\[(\\d+)\\]\\[(\\w+)\\]$`));
-    if (match) {
-      const index = Number(match[1]);
-      values[index] = values[index] ?? {};
-      values[index][match[2]] = String(value);
-    }
-  }
-  return Object.keys(values)
-    .map(Number)
-    .sort((a, b) => a - b)
-    .map((index) => map(values[index]));
-}
-
-function readNamedObject(formData: FormData, key: string) {
-  const values: Record<string, string> = {};
-  for (const [field, value] of formData.entries()) {
-    const match = field.match(new RegExp(`^${key}\\[(\\w+)\\]$`));
-    if (match) {
-      values[match[1]] = String(value);
-    }
-  }
-  return values;
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      resolve(result.split(",")[1] ?? "");
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
