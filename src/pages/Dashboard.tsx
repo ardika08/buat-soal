@@ -122,11 +122,27 @@ export default function Dashboard() {
         <Card className="border-none shadow-md shadow-slate-200/50 hover:shadow-lg transition-shadow bg-gradient-to-br from-indigo-50 to-purple-50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-indigo-700">Paket Aktif</CardTitle>
-            <div className="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-bold uppercase tracking-wider">{user?.subscription_tier ?? "free"}</div>
+            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              user?.subscription_tier === "premium"
+                ? "bg-purple-200 text-purple-800"
+                : (user?.credits_balance ?? 0) > 10
+                  ? "bg-emerald-200 text-emerald-800"
+                  : "bg-indigo-200 text-indigo-800"
+            }`}>
+              {user?.subscription_tier === "premium"
+                ? "PREMIUM"
+                : (user?.credits_balance ?? 0) > 10
+                  ? "AKTIF"
+                  : "FREE"}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold text-slate-900">
-              {user?.subscription_tier === "premium" ? "Premium Aktif" : "Gratis Selamanya"}
+              {user?.subscription_tier === "premium"
+                ? "Premium Aktif"
+                : (user?.credits_balance ?? 0) > 10
+                  ? "Kredit Top-Up"
+                  : "Paket Dasar"}
             </div>
             <button
               className="text-xs text-indigo-600 mt-1 cursor-pointer hover:underline"
