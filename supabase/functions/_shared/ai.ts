@@ -153,7 +153,8 @@ async function generateWithGemini(data: GenerateExamPayload, total: number) {
   });
 
   if (!response.ok) {
-    throw new Error("Gemini API mengembalikan error.");
+    const body = await response.text();
+    throw new Error(`Gemini API mengembalikan error (HTTP ${response.status}). ${body}`);
   }
 
   const json = await response.json();
@@ -191,6 +192,7 @@ async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
     },
     body: JSON.stringify({
       model,
+      temperature: 0.3,
       input: [
         {
           role: "system",
@@ -213,7 +215,8 @@ async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
   });
 
   if (!response.ok) {
-    throw new Error("OpenAI API mengembalikan error.");
+    const body = await response.text();
+    throw new Error(`OpenAI API mengembalikan error (HTTP ${response.status}). ${body}`);
   }
 
   const json = await response.json();

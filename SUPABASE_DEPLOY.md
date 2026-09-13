@@ -21,6 +21,7 @@ Buka Supabase Dashboard -> SQL Editor, lalu jalankan **berurutan**:
 1. supabase/migrations/20260515000000_initial_buat_soal_schema.sql
 2. supabase/migrations/20260912000000_p0_security_hotfix.sql
 3. supabase/migrations/20260912010000_p1_billing_lifecycle.sql
+4. supabase/migrations/20260913000000_create_exam_transaction_function.sql
 ```
 
 Jalankan setiap migration **hanya setelah** migration sebelumnya selesai tanpa error.
