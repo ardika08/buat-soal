@@ -255,11 +255,18 @@ export async function payloadFromFormData(
     label: String(value.label ?? ""),
     count: Number(value.count ?? 0),
   }));
-  const topics = readIndexedObjects<Topic>(formData, "topics", (value) => ({
-    topik: String(value.topik ?? ""),
-    tujuan: String(value.tujuan ?? ""),
-    capaian: typeof value.capaian === "string" ? value.capaian : undefined,
-  }));
+  const topics = readIndexedObjects<Topic>(formData, "topics", (value) => {
+    const topic: Topic = {
+      topik: String(value.topik ?? ""),
+      tujuan: String(value.tujuan ?? ""),
+    };
+    // Hanya sertakan capaian bila benar-benar diisi, supaya tidak bocor
+    // `capaian: undefined`/kosong ke payload (lihat aturan berkas ini).
+    if (typeof value.capaian === "string" && value.capaian !== "") {
+      topic.capaian = value.capaian;
+    }
+    return topic;
+  });
   const cognitiveLevels = readIndexedArray(formData, "cognitive_levels");
   const difficultyDistribution = readNamedObject(formData, "difficulty_distribution");
   const file = formData.get("reference_file");
