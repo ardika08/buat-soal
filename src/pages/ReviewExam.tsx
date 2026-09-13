@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import BillingDialog from "@/components/billing/BillingDialog";
 import { examsApi, type ExamSession, type Question } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import { exportExamDocx, exportExamPdf } from "@/lib/exportExam";
 import { exportKisiKisiDocx } from "@/lib/exportKisiKisi";
 
@@ -36,6 +38,7 @@ function questionsEqual(a: Question, b: Question) {
 
 export default function ReviewExam() {
   const location = useLocation();
+  const { user } = useAuth();
   const state = location.state as ReviewState | null;
   const examIdFromQuery = new URLSearchParams(location.search).get("exam");
   // Satu state untuk siklus muat: tidak perlu menyalakan loading di dalam effect,
@@ -61,6 +64,18 @@ export default function ReviewExam() {
 
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set([1]));
   const [isExportingKisi, setIsExportingKisi] = useState(false);
+  const [billingOpen, setBillingOpen] = useState(false);
+
+  /**
+   * Ekspor .docx adalah fitur berlangganan (lihat PRD). Konsisten dengan logika
+   * `expire_subscriptions` di database: premium tanpa tanggal kedaluwarsa berlaku
+   * selamanya; premium dengan tanggal yang sudah lewat dianggap free.
+   */
+  const isPremiumActive = Boolean(
+    user
+      && user.subscription_tier === "premium"
+      && (!user.subscription_expiry || new Date(user.subscription_expiry) > new Date()),
+  );
 
   useEffect(() => {
     if (state || !examIdFromQuery) {
@@ -468,25 +483,45 @@ export default function ReviewExam() {
                 <FileDown className="w-4 h-4 mr-2" /> Simpan sebagai .PDF
               </Button>
 
-              <Button onClick={() => void exportExamDocx(exam, visibleQuestions)} className="w-full justify-start bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100">
-                <Download className="w-4 h-4 mr-2" /> Ekspor .DOCX (Word)
-              </Button>
+              {isPremiumActive ? (
+                <Button onClick={() => void exportExamDocx(exam, visibleQuestions)} className="w-full justify-start bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                  <Download className="w-4 h-4 mr-2" /> Ekspor .DOCX (Word)
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setBillingOpen(true)}
+                  className="w-full justify-start bg-indigo-50 border-indigo-100 text-indigo-400 hover:bg-indigo-100"
+                  title="Ekspor .docx tersedia untuk pelanggan Premium"
+                >
+                  <Lock className="w-4 h-4 mr-2" /> Ekspor .DOCX (Premium)
+                </Button>
+              )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-emerald-100">
               <div className="text-xs text-emerald-600 mb-2 font-medium">Kisi-Kisi</div>
-              <Button
-                onClick={() => {
-                  setIsExportingKisi(true);
-                  void exportKisiKisiDocx(exam, visibleQuestions).finally(() =>
-                    setIsExportingKisi(false),
-                  );
-                }}
-                disabled={isExportingKisi}
-                className="w-full justify-start bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
-              >
-                <FileText className="w-4 h-4 mr-2" /> {isExportingKisi ? "Membuat kisi-kisi..." : "Download Kisi-Kisi (.DOCX)"}
-              </Button>
+              {isPremiumActive ? (
+                <Button
+                  onClick={() => {
+                    setIsExportingKisi(true);
+                    void exportKisiKisiDocx(exam, visibleQuestions).finally(() =>
+                      setIsExportingKisi(false),
+                    );
+                  }}
+                  disabled={isExportingKisi}
+                  className="w-full justify-start bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                >
+                  <FileText className="w-4 h-4 mr-2" /> {isExportingKisi ? "Membuat kisi-kisi..." : "Download Kisi-Kisi (.DOCX)"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setBillingOpen(true)}
+                  className="w-full justify-start bg-emerald-50 border-emerald-100 text-emerald-400 hover:bg-emerald-100"
+                  title="Kisi-kisi .docx tersedia untuk pelanggan Premium"
+                >
+                  <Lock className="w-4 h-4 mr-2" /> Kisi-Kisi .DOCX (Premium)
+                </Button>
+              )}
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-100">
@@ -515,6 +550,12 @@ export default function ReviewExam() {
           </Link>
         </div>
       </div>
+
+      <BillingDialog
+        open={billingOpen}
+        onOpenChange={setBillingOpen}
+        defaultTab="subscription"
+      />
     </div>
   );
 }
