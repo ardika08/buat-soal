@@ -138,13 +138,6 @@ const multiParaCell = (lines: string[], width: number, align: Align = AlignmentT
     ),
   });
 
-const emptyCell = (width: number) =>
-  new TableCell({
-    width: { size: width, type: WidthType.DXA },
-    margins: { marginUnitType: WidthType.DXA, top: 30, bottom: 30, left: 60, right: 60 },
-    children: [new Paragraph({ children: [] })],
-  });
-
 // Metadata layout uses tab stops: label | : value | right label | right value
 const META_TAB_STOPS = [
   { type: TabStopType.LEFT, position: 2268 },
@@ -213,7 +206,7 @@ export async function exportKisiKisiDocx(exam: ExamSession, questions: Question[
     return new TableRow({
       children: [
         dataCell(String(question.order_number), COL_WIDTHS[0], AlignmentType.CENTER),
-        emptyCell(COL_WIDTHS[1]),
+        dataCell(topic?.capaian ?? "", COL_WIDTHS[1]),
         dataCell(topic?.tujuan ?? "", COL_WIDTHS[2]),
         dataCell(topic?.topik ?? "", COL_WIDTHS[3]),
         dataCell(indicator, COL_WIDTHS[4]),

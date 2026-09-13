@@ -28,6 +28,7 @@ export interface ExamFormat {
 export interface Topic {
   topik: string;
   tujuan: string;
+  capaian?: string;
 }
 
 export interface DifficultyDistribution {
@@ -257,6 +258,7 @@ export async function payloadFromFormData(
   const topics = readIndexedObjects<Topic>(formData, "topics", (value) => ({
     topik: String(value.topik ?? ""),
     tujuan: String(value.tujuan ?? ""),
+    capaian: typeof value.capaian === "string" ? value.capaian : undefined,
   }));
   const cognitiveLevels = readIndexedArray(formData, "cognitive_levels");
   const difficultyDistribution = readNamedObject(formData, "difficulty_distribution");

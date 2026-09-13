@@ -1,4 +1,4 @@
-import { attachIllustrationImages, generateQuestions, totalQuestions, type GenerateExamPayload } from "../_shared/ai.ts";
+import { attachIllustrationImages, generateCapaianPembelajaran, generateQuestions, selectAiProvider, totalQuestions, type GenerateExamPayload } from "../_shared/ai.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createAdminClient, createUserClient, getSupabaseUrl } from "../_shared/supabase.ts";
 
@@ -47,12 +47,27 @@ Deno.serve(async (request) => {
       }, 402);
     }
 
-    const generatedQuestions = await generateQuestions({
+    const provider = selectAiProvider({
       id: Number(profile.id),
       subscription_tier: profile.subscription_tier,
       credits_balance: Number(profile.credits_balance),
       subscription_expiry: profile.subscription_expiry,
-    }, payload);
+    });
+
+    const [generatedQuestions, capaian] = await Promise.all([
+      generateQuestions({
+        id: Number(profile.id),
+        subscription_tier: profile.subscription_tier,
+        credits_balance: Number(profile.credits_balance),
+        subscription_expiry: profile.subscription_expiry,
+      }, payload),
+      generateCapaianPembelajaran(provider, payload),
+    ]);
+
+    const enrichedTopics = payload.topics.map((topic, index) => ({
+      ...topic,
+      capaian: capaian[index] ?? "",
+    }));
 
     const questionsWithImages = await attachIllustrationImages(generatedQuestions, payload, async (path, bytes) => {
       const { error } = await admin.storage
@@ -115,7 +130,7 @@ Deno.serve(async (request) => {
         cognitive_levels: payload.cognitive_levels,
         pg_options: payload.pg_options,
         include_illustration: payload.include_illustration,
-        topics: payload.topics,
+        topics: enrichedTopics,
       },
       p_questions: questionRows,
       p_required_credits: requiredCredits,

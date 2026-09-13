@@ -18,7 +18,7 @@ export interface GenerateExamPayload {
   };
   pg_options: string | null;
   include_illustration: boolean;
-  topics: Array<{ topik: string; tujuan: string }>;
+  topics: Array<{ topik: string; tujuan: string; capaian?: string }>;
   formats: Array<{ id: string; label: string; count: number }>;
 }
 
@@ -47,10 +47,14 @@ export function totalQuestions(formats: GenerateExamPayload["formats"]) {
   return formats.reduce((sum, format) => sum + Number(format.count ?? 0), 0);
 }
 
-export async function generateQuestions(profile: Profile, data: GenerateExamPayload) {
-  const provider = hasPremiumAccess(profile)
+export function selectAiProvider(profile: Profile) {
+  return hasPremiumAccess(profile)
     ? Deno.env.get("AI_PREMIUM_PROVIDER") ?? "openai"
     : Deno.env.get("AI_FREE_PROVIDER") ?? "gemini";
+}
+
+export async function generateQuestions(profile: Profile, data: GenerateExamPayload) {
+  const provider = selectAiProvider(profile);
   const batches = chunkFormats(data.formats, MAX_QUESTIONS_PER_AI_REQUEST);
   const questions: GeneratedQuestion[] = [];
 
@@ -61,6 +65,154 @@ export async function generateQuestions(profile: Profile, data: GenerateExamPayl
   }
 
   return questions;
+}
+
+// Fills the kisi-kisi "Capaian Pembelajaran" column. Non-critical: falls back
+// to empty strings so exam generation never fails because of it.
+export async function generateCapaianPembelajaran(
+  provider: string,
+  data: GenerateExamPayload,
+): Promise<string[]> {
+  const fallback = data.topics.map(() => "");
+
+  try {
+    const payload = provider === "openai"
+      ? await capaianWithOpenAi(data)
+      : await capaianWithGemini(data);
+    const capaian = (payload as { capaian?: unknown })?.capaian;
+
+    if (!Array.isArray(capaian) || capaian.length !== data.topics.length) {
+      return fallback;
+    }
+
+    return capaian.map((item) => typeof item === "string" ? item.trim() : "");
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function capaianPrompt(data: GenerateExamPayload) {
+  const topicList = data.topics
+    .map((topic, index) => `${index + 1}. Topik: ${topic.topik}. Tujuan: ${topic.tujuan}`)
+    .join("\n");
+
+  return JSON.stringify({
+    instruction:
+      "Tuliskan Capaian Pembelajaran (CP) yang relevan untuk setiap topik pembelajaran berikut, untuk keperluan kisi-kisi soal ujian. CP adalah kompetensi per fase dari dokumen kurikulum (bukan tujuan pembelajaran harian). Gunakan Bahasa Indonesia formal, satu kalimat ringkas per topik, dan sesuaikan dengan mata pelajaran serta fase/kelas yang diberikan. Kembalikan hanya JSON valid sesuai schema.",
+    curriculum: data.curriculum,
+    class_phase: data.class_phase,
+    subject: data.subject,
+    topics: topicList,
+    json_shape: {
+      capaian: ["CP untuk topik 1", "CP untuk topik 2"],
+    },
+  });
+}
+
+function capaianSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      capaian: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["capaian"],
+  };
+}
+
+async function capaianWithGemini(data: GenerateExamPayload) {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash-lite";
+  const baseUrl = (Deno.env.get("GEMINI_BASE_URL") ?? "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
+
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY belum dikonfigurasi.");
+  }
+
+  const response = await fetch(`${baseUrl}/models/${model}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: capaianPrompt(data) }] }],
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: "application/json",
+        responseJsonSchema: capaianSchema(),
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Gemini API mengembalikan error (HTTP ${response.status}). ${body}`);
+  }
+
+  const json = await response.json();
+  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (typeof text !== "string" || text.trim() === "") {
+    throw new Error("Gemini API tidak mengembalikan teks JSON.");
+  }
+
+  return JSON.parse(text);
+}
+
+async function capaianWithOpenAi(data: GenerateExamPayload) {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  const model = Deno.env.get("OPENAI_PREMIUM_MODEL") ?? "gpt-5.4-mini";
+  const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY belum dikonfigurasi.");
+  }
+
+  const response = await fetch(`${baseUrl}/responses`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.3,
+      input: [
+        {
+          role: "system",
+          content: "Anda adalah penyusun kisi-kisi soal ujian sekolah. Jawab hanya dengan JSON sesuai schema.",
+        },
+        {
+          role: "user",
+          content: [{ type: "input_text", text: capaianPrompt(data) }],
+        },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "capaian_pembelajaran",
+          strict: true,
+          schema: capaianSchema(),
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`OpenAI API mengembalikan error (HTTP ${response.status}). ${body}`);
+  }
+
+  const json = await response.json();
+  const text = extractOpenAiText(json);
+  if (!text) {
+    throw new Error("OpenAI API tidak mengembalikan teks JSON.");
+  }
+
+  return JSON.parse(text);
 }
 
 async function generateQuestionBatch(provider: string, data: GenerateExamPayload, total: number) {
