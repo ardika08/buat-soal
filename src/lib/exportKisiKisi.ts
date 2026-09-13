@@ -276,8 +276,8 @@ export async function exportKisiKisiDocx(exam: ExamSession, questions: Question[
         properties: {
           page: {
             size: {
-              width: 16838,
-              height: 11906,
+              width: 11906,
+              height: 16838,
               orientation: PageOrientation.LANDSCAPE,
             },
             margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
