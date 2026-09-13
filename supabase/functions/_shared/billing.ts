@@ -1,22 +1,4 @@
 export const billingPackages = {
-  "topup-50": {
-    id: "topup-50",
-    type: "topup",
-    name: "Top Up 50 Soal",
-    description: "Cocok untuk satu paket ujian atau kebutuhan cepat akhir semester.",
-    credits: 50,
-    price: 25000,
-    duration_months: null,
-  },
-  "topup-100": {
-    id: "topup-100",
-    type: "topup",
-    name: "Top Up 100 Soal",
-    description: "Lebih hemat untuk beberapa kelas atau beberapa mapel.",
-    credits: 100,
-    price: 40000,
-    duration_months: null,
-  },
   "premium-6m": {
     id: "premium-6m",
     type: "subscription",
@@ -46,6 +28,56 @@ export function findPackage(packageId: string): BillingPackage | null {
     return null;
   }
   return billingPackages[packageId as BillingPackageId];
+}
+
+// --- Custom top-up: user buys any amount of credits at a flat rate ---
+
+export const CUSTOM_CREDIT_RATE = 200; // Rp 200 per kredit
+export const CUSTOM_TOPUP_MIN = 10;
+export const CUSTOM_TOPUP_MAX = 5000;
+export const CUSTOM_TOPUP_PACKAGE_ID = "custom-topup";
+
+export interface ResolvedCheckout {
+  packageId: string;
+  orderType: "topup" | "subscription";
+  credits: number;
+  amount: number;
+  name: string;
+  durationMonths: number | null;
+}
+
+export function resolveCheckoutInput(body: Record<string, unknown>): ResolvedCheckout | null {
+  // Subscription package (fixed price + credits)
+  const packageId = typeof body.package_id === "string" ? body.package_id : "";
+  if (packageId) {
+    const pkg = findPackage(packageId);
+    if (pkg) {
+      return {
+        packageId: pkg.id,
+        orderType: pkg.type,
+        credits: pkg.credits,
+        amount: pkg.price,
+        name: pkg.name,
+        durationMonths: pkg.duration_months,
+      };
+    }
+  }
+
+  // Custom top-up (credits × flat rate)
+  const credits = Number(body.credits);
+  if (Number.isFinite(credits) && credits >= CUSTOM_TOPUP_MIN && credits <= CUSTOM_TOPUP_MAX) {
+    const rounded = Math.floor(credits);
+    return {
+      packageId: CUSTOM_TOPUP_PACKAGE_ID,
+      orderType: "topup",
+      credits: rounded,
+      amount: rounded * CUSTOM_CREDIT_RATE,
+      name: `Top Up ${rounded} Kredit`,
+      durationMonths: null,
+    };
+  }
+
+  return null;
 }
 
 /**

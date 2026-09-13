@@ -3,9 +3,9 @@ import { Circle } from "lucide-react";
 
 const SALES_PROOF_ENTRIES = [
   { teacherName: "Rina Kartika", city: "Bandung", packageName: "Premium 12 Bulan", minutesAgo: 12 },
-  { teacherName: "Andi Saputra", city: "Surabaya", packageName: "Top Up 100 Soal", minutesAgo: 18 },
+  { teacherName: "Andi Saputra", city: "Surabaya", packageName: "Top Up Kredit", minutesAgo: 18 },
   { teacherName: "Diah Puspita", city: "Yogyakarta", packageName: "Premium 6 Bulan", minutesAgo: 24 },
-  { teacherName: "Fajar Nugroho", city: "Semarang", packageName: "Top Up 50 Soal", minutesAgo: 31 },
+  { teacherName: "Fajar Nugroho", city: "Semarang", packageName: "Top Up Kredit", minutesAgo: 31 },
   { teacherName: "Siska Wulandari", city: "Makassar", packageName: "Premium 12 Bulan", minutesAgo: 37 },
 ];
 

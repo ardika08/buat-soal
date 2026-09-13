@@ -1,4 +1,4 @@
-import { buildBillingReturnUrl, findPackage, INVOICE_TTL_MINUTES } from "../_shared/billing.ts";
+import { buildBillingReturnUrl, INVOICE_TTL_MINUTES, resolveCheckoutInput, CUSTOM_TOPUP_PACKAGE_ID } from "../_shared/billing.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createMayarInvoice } from "../_shared/mayar.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
@@ -30,11 +30,10 @@ Deno.serve(async (request) => {
     }
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
-    const packageId = typeof body.package_id === "string" ? body.package_id : "";
-    const selectedPackage = findPackage(packageId);
+    const resolved = resolveCheckoutInput(body);
 
-    if (!selectedPackage) {
-      return jsonResponse({ message: "Paket tidak ditemukan." }, 404);
+    if (!resolved) {
+      return jsonResponse({ message: "Paket atau jumlah kredit tidak valid." }, 404);
     }
 
     const customerName = normalizeText(body.customer_name);
@@ -59,12 +58,18 @@ Deno.serve(async (request) => {
     // Cegah tumpukan order pending: satu order terbuka per pengguna per paket.
     await expireStaleOrders(admin, Number(profile.id));
 
-    const { data: pendingOrder } = await admin
+    let pendingOrderQuery = admin
       .from("payment_orders")
       .select("*")
       .eq("user_id", profile.id)
-      .eq("package_id", selectedPackage.id)
-      .eq("status", "pending")
+      .eq("package_id", resolved.packageId)
+      .eq("status", "pending");
+
+    if (resolved.packageId === CUSTOM_TOPUP_PACKAGE_ID) {
+      pendingOrderQuery = pendingOrderQuery.eq("credits", resolved.credits);
+    }
+
+    const { data: pendingOrder } = await pendingOrderQuery
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -72,7 +77,7 @@ Deno.serve(async (request) => {
     if (pendingOrder?.checkout_url) {
       return jsonResponse({
         message: "Order pembayaran sudah dibuat. Lanjutkan pembayaran Anda.",
-        package: selectedPackage,
+        package: toPublicPackage(resolved),
         order: toPublicOrder(pendingOrder),
         payment: toPublicPayment(pendingOrder),
         user: toPublicUser(profile),
@@ -86,13 +91,13 @@ Deno.serve(async (request) => {
       .from("payment_orders")
       .insert({
         user_id: profile.id,
-        package_id: selectedPackage.id,
-        order_type: selectedPackage.type,
+        package_id: resolved.packageId,
+        order_type: resolved.orderType,
         provider: "mayar",
         status: "pending",
-        amount: selectedPackage.price,
-        credits: selectedPackage.credits,
-        duration_months: selectedPackage.duration_months,
+        amount: resolved.amount,
+        credits: resolved.credits,
+        duration_months: resolved.durationMonths,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_mobile: customerMobile,
@@ -111,19 +116,19 @@ Deno.serve(async (request) => {
         email: customerEmail,
         mobile: customerMobile,
         redirectUrl: buildRedirectUrl(request, Number(order.id)),
-        description: `${selectedPackage.name} - ${selectedPackage.credits} kredit Soalify (order #${order.id})`,
+        description: `${resolved.name} - ${resolved.credits} kredit Soalify (order #${order.id})`,
         expiredAt: expiredAt.toISOString(),
         items: [
           {
             quantity: 1,
-            rate: selectedPackage.price,
-            description: selectedPackage.name,
+            rate: resolved.amount,
+            description: resolved.name,
           },
         ],
         extraData: {
           orderId: String(order.id),
           userId: String(profile.id),
-          packageId: selectedPackage.id,
+          packageId: resolved.packageId,
         },
       });
     } catch (error) {
@@ -155,7 +160,7 @@ Deno.serve(async (request) => {
 
     return jsonResponse({
       message: "Order pembayaran dibuat. Selesaikan pembayaran untuk mengaktifkan kredit.",
-      package: selectedPackage,
+      package: toPublicPackage(resolved),
       order: toPublicOrder(updatedOrder),
       payment: toPublicPayment(updatedOrder),
       user: toPublicUser(profile),
@@ -212,6 +217,18 @@ function buildRedirectUrl(request: Request, orderId: number) {
   } catch {
     return buildBillingReturnUrl("https://soalify.app", orderId);
   }
+}
+
+function toPublicPackage(resolved: { packageId: string; orderType: string; credits: number; amount: number; name: string; durationMonths: number | null }) {
+  return {
+    id: resolved.packageId,
+    type: resolved.orderType,
+    name: resolved.name,
+    description: resolved.name,
+    credits: resolved.credits,
+    price: resolved.amount,
+    duration_months: resolved.durationMonths,
+  };
 }
 
 function toPublicUser(profile: Record<string, unknown>) {

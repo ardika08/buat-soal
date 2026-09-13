@@ -114,25 +114,11 @@ export interface BillingCustomer {
   mobile: string;
 }
 
+export const CUSTOM_CREDIT_RATE = 200;
+export const CUSTOM_TOPUP_MIN = 10;
+export const CUSTOM_TOPUP_MAX = 5000;
+
 const billingPackages: BillingPackage[] = [
-  {
-    id: "topup-50",
-    type: "topup",
-    name: "Top Up 50 Soal",
-    description: "Cocok untuk satu paket ujian atau kebutuhan cepat akhir semester.",
-    credits: 50,
-    price: 25000,
-    duration_months: null,
-  },
-  {
-    id: "topup-100",
-    type: "topup",
-    name: "Top Up 100 Soal",
-    description: "Lebih hemat untuk beberapa kelas atau beberapa mapel.",
-    credits: 100,
-    price: 40000,
-    duration_months: null,
-  },
   {
     id: "premium-6m",
     type: "subscription",
@@ -383,6 +369,15 @@ export const billingApi = {
   checkout: async (packageId: string, customer: BillingCustomer): ApiResponse<BillingCheckoutResponse> => ({
     data: await invokeFunction("billing-checkout", {
       package_id: packageId,
+      customer_name: customer.name,
+      customer_email: customer.email,
+      customer_mobile: customer.mobile,
+    }),
+  }),
+
+  checkoutCustomCredits: async (credits: number, customer: BillingCustomer): ApiResponse<BillingCheckoutResponse> => ({
+    data: await invokeFunction("billing-checkout", {
+      credits: Math.floor(credits),
       customer_name: customer.name,
       customer_email: customer.email,
       customer_mobile: customer.mobile,

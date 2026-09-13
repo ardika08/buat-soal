@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { billingApi, type BillingPackage } from "@/lib/api";
+import { billingApi, type BillingPackage, type BillingCheckoutResponse, CUSTOM_CREDIT_RATE, CUSTOM_TOPUP_MIN, CUSTOM_TOPUP_MAX } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 interface BillingDialogProps {
@@ -53,6 +53,7 @@ function BillingPackagesPanel({
   const [customerMobile, setCustomerMobile] = useState(
     () => localStorage.getItem("billing_customer_mobile") ?? "",
   );
+  const [customCredits, setCustomCredits] = useState<number>(50);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -88,12 +89,20 @@ function BillingPackagesPanel({
     };
   }, []);
 
-  const visiblePackages = useMemo(
-    () => packages.filter((item) => item.type === activeTab),
-    [packages, activeTab],
+  const subscriptionPackages = useMemo(
+    () => packages.filter((item) => item.type === "subscription"),
+    [packages],
   );
 
-  const handleCheckout = async (packageId: string) => {
+  const parsedCredits = Number.isFinite(customCredits) ? Math.floor(customCredits) : 0;
+  const customAmount = Math.max(0, parsedCredits) * CUSTOM_CREDIT_RATE;
+  const customCreditsValid =
+    Number.isFinite(customCredits) && customCredits >= CUSTOM_TOPUP_MIN && customCredits <= CUSTOM_TOPUP_MAX;
+
+  const performCheckout = async (
+    processingKey: string,
+    checkoutFn: () => Promise<{ data: BillingCheckoutResponse }>,
+  ) => {
     if (!customerName.trim()) {
       setError("Nama pembeli wajib diisi agar checkout Mayar bisa dibuat.");
       return;
@@ -109,16 +118,12 @@ function BillingPackagesPanel({
       return;
     }
 
-    setProcessingId(packageId);
+    setProcessingId(processingKey);
     setMessage(null);
     setError(null);
 
     try {
-      const res = await billingApi.checkout(packageId, {
-        name: customerName.trim(),
-        email: customerEmail.trim(),
-        mobile: customerMobile.trim(),
-      });
+      const res = await checkoutFn();
       localStorage.setItem("billing_customer_name", customerName.trim());
       localStorage.setItem("billing_customer_email", customerEmail.trim());
       localStorage.setItem("billing_customer_mobile", customerMobile.trim());
@@ -140,6 +145,24 @@ function BillingPackagesPanel({
       setProcessingId(null);
     }
   };
+
+  const handleCheckout = (packageId: string) =>
+    performCheckout(packageId, () =>
+      billingApi.checkout(packageId, {
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        mobile: customerMobile.trim(),
+      }),
+    );
+
+  const handleCustomCheckout = () =>
+    performCheckout("custom-topup", () =>
+      billingApi.checkoutCustomCredits(parsedCredits, {
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        mobile: customerMobile.trim(),
+      }),
+    );
 
   return (
     <>
@@ -219,9 +242,62 @@ function BillingPackagesPanel({
             <Loader2 className="mb-2 h-5 w-5 animate-spin" />
             Memuat paket...
           </div>
+        ) : activeTab === "topup" ? (
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-slate-900">Top Up Kredit</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Pilih jumlah kredit sesuai kebutuhan. Tarif flat {formatRupiah(CUSTOM_CREDIT_RATE)} per kredit.
+                </p>
+              </div>
+              <div className="rounded-full bg-indigo-50 p-2 text-indigo-600">
+                <CreditCard className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label htmlFor="custom-credits" className="block text-sm font-semibold text-slate-900">
+                  Jumlah kredit
+                </label>
+                <Input
+                  id="custom-credits"
+                  type="number"
+                  min={CUSTOM_TOPUP_MIN}
+                  max={CUSTOM_TOPUP_MAX}
+                  step={10}
+                  className="mt-2 bg-white"
+                  placeholder={`Min. ${CUSTOM_TOPUP_MIN}`}
+                  value={Number.isFinite(customCredits) ? customCredits : ""}
+                  onChange={(event) => setCustomCredits(Number(event.target.value))}
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Minimal {CUSTOM_TOPUP_MIN} dan maksimal {CUSTOM_TOPUP_MAX.toLocaleString("id-ID")} kredit.
+                </p>
+              </div>
+
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">{formatRupiah(customAmount)}</div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    {parsedCredits.toLocaleString("id-ID")} kredit × {formatRupiah(CUSTOM_CREDIT_RATE)}
+                  </div>
+                </div>
+                <Button
+                  onClick={() => void handleCustomCheckout()}
+                  disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim() || !customCreditsValid}
+                  className="bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  {processingId === "custom-topup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Bayar
+                </Button>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {visiblePackages.map((item) => (
+            {subscriptionPackages.map((item) => (
               <div key={item.id} className="rounded-xl border bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>

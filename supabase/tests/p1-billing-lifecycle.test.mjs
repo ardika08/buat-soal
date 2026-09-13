@@ -91,7 +91,7 @@ async function createOrder({
   durationMonths = null,
   providerOrderId = null,
   ageHours = 0,
-  packageId = "topup-50",
+  packageId = "custom-topup",
 }) {
   const { rows } = await db.query(
     `insert into public.payment_orders (
