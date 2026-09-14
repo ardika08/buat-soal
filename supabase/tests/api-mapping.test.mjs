@@ -148,6 +148,7 @@ const QUESTION_ROW = {
   question_content: "Berapa 2 + 2?",
   options: { A: "3", B: "4" },
   correct_answer: "B",
+  explanation: "Karena 2 ditambah 2 sama dengan 4.",
   illustration_prompt: null,
   illustration_image: null,
 };
@@ -161,6 +162,13 @@ test("normalizeQuestion memetakan soal lengkap", () => {
   assert.equal(question.question_content, "Berapa 2 + 2?");
   assert.deepEqual(question.options, { A: "3", B: "4" });
   assert.equal(question.correct_answer, "B");
+  assert.equal(question.explanation, "Karena 2 ditambah 2 sama dengan 4.");
+});
+
+test("normalizeQuestion menjadikan pembahasan kosong sebagai null, bukan string 'null'", () => {
+  assert.equal(normalizeQuestion({ ...QUESTION_ROW, explanation: null }).explanation, null);
+  assert.equal(normalizeQuestion({ ...QUESTION_ROW, explanation: "" }).explanation, null);
+  assert.equal(normalizeQuestion(QUESTION_ROW).explanation, "Karena 2 ditambah 2 sama dengan 4.");
 });
 
 test("normalizeQuestion menerima soal esai tanpa pilihan jawaban", () => {

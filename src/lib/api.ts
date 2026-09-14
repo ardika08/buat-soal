@@ -316,31 +316,138 @@ export const examsApi = {
     };
   },
 
-  updateQuestion: async (_examId: number, questionId: number, payload: Partial<Question>): ApiResponse<{ message: string; question: Question }> => {
-    const { data, error } = await supabase
-      .from("questions")
-      .update({
-        question_type: payload.question_type,
-        cognitive_level: payload.cognitive_level,
-        difficulty: payload.difficulty,
-        question_content: payload.question_content,
-        options: payload.options,
-        correct_answer: payload.correct_answer,
-        illustration_prompt: payload.illustration_prompt,
-        illustration_image: payload.illustration_image,
-      })
-      .eq("id", questionId)
-      .select("*")
-      .single();
+  updateQuestion: async (examId: number, questionId: number, payload: Partial<Question>): ApiResponse<{ message: string; question: Question }> => {
+    const { data, error } = await supabase.rpc("update_exam_question", {
+      p_exam_id: examId,
+      p_question_id: questionId,
+      p_question: {
+        question_type: payload.question_type ?? "",
+        cognitive_level: payload.cognitive_level ?? "",
+        difficulty: payload.difficulty ?? "",
+        question_content: payload.question_content ?? "",
+        options: payload.options ?? null,
+        correct_answer: payload.correct_answer ?? "",
+        explanation: payload.explanation ?? "",
+        illustration_prompt: payload.illustration_prompt ?? "",
+        illustration_image: payload.illustration_image ?? "",
+      },
+    });
 
     if (error || !data) {
-      throw new ApiError(error?.message ?? "Gagal menyimpan perubahan.", 422);
+      const raw = error?.message ?? "";
+      const message = raw.includes("question_required")
+        ? "Pertanyaan wajib diisi."
+        : raw.includes("answer_required")
+          ? "Kunci jawaban wajib diisi."
+          : raw.includes("minimum_options")
+            ? "Pilihan ganda harus memiliki minimal dua opsi."
+            : raw.includes("invalid_answer_key")
+              ? "Kunci jawaban harus cocok dengan salah satu opsi."
+              : raw || "Gagal menyimpan perubahan.";
+      throw new ApiError(message, 422);
     }
 
     return {
       data: {
         message: "Soal berhasil diperbarui.",
-        question: normalizeQuestion(data),
+        question: normalizeQuestion(data as Record<string, unknown>),
+      },
+    };
+  },
+
+  addQuestion: async (
+    examId: number,
+    afterOrder: number | null,
+    payload: Partial<Question>,
+  ): ApiResponse<{ message: string; question: Question }> => {
+    const { data, error } = await supabase.rpc("add_exam_question", {
+      p_exam_id: examId,
+      p_after_order: afterOrder,
+      p_question: {
+        question_type: payload.question_type ?? "Pilihan Ganda",
+        cognitive_level: payload.cognitive_level ?? "",
+        difficulty: payload.difficulty ?? "",
+        question_content: payload.question_content ?? "",
+        options: payload.options ?? null,
+        correct_answer: payload.correct_answer ?? "",
+        explanation: payload.explanation ?? "",
+        illustration_prompt: payload.illustration_prompt ?? "",
+        illustration_image: payload.illustration_image ?? "",
+      },
+    });
+
+    if (error || !data) {
+      throw new ApiError(error?.message ?? "Gagal menambahkan soal.", 422);
+    }
+
+    return {
+      data: {
+        message: "Soal berhasil ditambahkan.",
+        question: normalizeQuestion(data as Record<string, unknown>),
+      },
+    };
+  },
+
+  deleteQuestion: async (
+    examId: number,
+    questionId: number,
+  ): ApiResponse<{ message: string }> => {
+    const { error } = await supabase.rpc("delete_exam_question", {
+      p_exam_id: examId,
+      p_question_id: questionId,
+    });
+
+    if (error) {
+      const message =
+        error.message.includes("last_question")
+          ? "Tidak bisa menghapus soal terakhir. Ujian harus punya minimal satu soal."
+          : error.message;
+      throw new ApiError(message, 422);
+    }
+
+    return { data: { message: "Soal berhasil dihapus." } };
+  },
+
+  reorderQuestions: async (
+    examId: number,
+    orderedIds: number[],
+  ): ApiResponse<{ message: string; questions: Question[] }> => {
+    const { data, error } = await supabase.rpc("reorder_exam_questions", {
+      p_exam_id: examId,
+      p_ordered_ids: orderedIds,
+    });
+
+    if (error || !data) {
+      throw new ApiError(error?.message ?? "Gagal mengurutkan soal.", 422);
+    }
+
+    const payload = data as { questions?: Record<string, unknown>[] };
+    return {
+      data: {
+        message: "Urutan soal diperbarui.",
+        questions: (payload.questions ?? []).map(normalizeQuestion),
+      },
+    };
+  },
+
+  regenerateQuestion: async (
+    questionId: number,
+    instruction?: string,
+  ): ApiResponse<{ message: string; question: Question; credits_remaining: number }> => {
+    const result = await invokeFunction<{
+      question: Record<string, unknown>;
+      credits_remaining: number;
+    }>("question-regenerate", {
+      question_id: questionId,
+      instruction: instruction?.trim() || undefined,
+      idempotency_key: crypto.randomUUID(),
+    });
+
+    return {
+      data: {
+        message: "Soal berhasil dibuat ulang.",
+        question: normalizeQuestion(result.question),
+        credits_remaining: Number(result.credits_remaining ?? 0),
       },
     };
   },

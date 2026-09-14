@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,6 +25,13 @@ interface ReviewState {
   creditsRemaining: number;
 }
 
+// Nilai enum dropdown: menjaga konsistensi supaya "Sulit", "sulit", salah ketik
+// tidak tersimpan sebagai nilai berbeda yang mengacaukan kisi-kisi dan filter.
+const QUESTION_TYPES = ["Pilihan Ganda", "Pilihan Ganda Kompleks", "Benar/Salah", "Isian Singkat", "Uraian", "Menjodohkan"];
+const COGNITIVE_LEVELS = ["C1", "C2", "C3", "C4", "C5", "C6"];
+const DIFFICULTY_LEVELS = ["Mudah", "Sedang", "Sulit"];
+const OPTION_KEYS = ["A", "B", "C", "D", "E", "F"];
+
 /** Perbandingan dangkal field yang bisa diedit, dipakai untuk mendeteksi perubahan nyata. */
 function questionsEqual(a: Question, b: Question) {
   return a.question_type === b.question_type
@@ -31,14 +39,21 @@ function questionsEqual(a: Question, b: Question) {
     && a.difficulty === b.difficulty
     && a.question_content === b.question_content
     && a.correct_answer === b.correct_answer
+    && (a.explanation ?? "") === (b.explanation ?? "")
     && (a.illustration_prompt ?? "") === (b.illustration_prompt ?? "")
     && (a.illustration_image ?? "") === (b.illustration_image ?? "")
     && JSON.stringify(a.options ?? null) === JSON.stringify(b.options ?? null);
 }
 
+/** Kunci opsi berikutnya yang belum terpakai (A, B, C, ...). */
+function nextOptionKey(options: Record<string, string> | null): string | null {
+  const used = new Set(Object.keys(options ?? {}));
+  return OPTION_KEYS.find((key) => !used.has(key)) ?? null;
+}
+
 export default function ReviewExam() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const state = location.state as ReviewState | null;
   const examIdFromQuery = new URLSearchParams(location.search).get("exam");
   // Satu state untuk siklus muat: tidak perlu menyalakan loading di dalam effect,
@@ -62,9 +77,18 @@ export default function ReviewExam() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(Boolean(state));
 
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set([1]));
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(
+    new Set(state?.questions[0] ? [state.questions[0].id] : []),
+  );
   const [isExportingKisi, setIsExportingKisi] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
+  // Aksi struktural (tambah/hapus/urut/regenerasi) langsung ke server, tidak lewat
+  // draft — supaya id soal baru dan nomor urut selalu konsisten dengan database.
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<Question | null>(null);
+  const [regenTarget, setRegenTarget] = useState<Question | null>(null);
+  const [regenInstruction, setRegenInstruction] = useState("");
+  const autoSaveRef = useRef<() => Promise<void>>(async () => undefined);
 
   /**
    * Ekspor .docx adalah fitur berlangganan (lihat PRD). Konsisten dengan logika
@@ -94,6 +118,7 @@ export default function ReviewExam() {
           },
         });
         setDraftQuestions(res.data.questions);
+        if (res.data.questions[0]) setExpandedIds(new Set([res.data.questions[0].id]));
       })
       .catch(() => setLoadState({ kind: "error", message: "Gagal memuat data soal dari server." }));
   }, [examIdFromQuery, state]);
@@ -108,12 +133,14 @@ export default function ReviewExam() {
   };
 
   const updateDraftQuestion = (questionId: number, patch: Partial<Question>) => {
+    setSaveMessage("Belum disimpan...");
     setDraftQuestions((current) =>
       current.map((question) => question.id === questionId ? { ...question, ...patch } : question),
     );
   };
 
   const updateDraftOption = (questionId: number, key: string, value: string) => {
+    setSaveMessage("Belum disimpan...");
     setDraftQuestions((current) =>
       current.map((question) => question.id === questionId
         ? { ...question, options: { ...(question.options ?? {}), [key]: value } }
@@ -122,10 +149,36 @@ export default function ReviewExam() {
     );
   };
 
+  const addDraftOption = (questionId: number) => {
+    setSaveMessage("Belum disimpan...");
+    setDraftQuestions((current) =>
+      current.map((question) => {
+        if (question.id !== questionId) return question;
+        const key = nextOptionKey(question.options);
+        if (!key) return question;
+        return { ...question, options: { ...(question.options ?? {}), [key]: "" } };
+      }),
+    );
+  };
+
+  const removeDraftOption = (questionId: number, key: string) => {
+    setSaveMessage("Belum disimpan...");
+    setDraftQuestions((current) =>
+      current.map((question) => {
+        if (question.id !== questionId || !question.options) return question;
+        const next = { ...question.options };
+        delete next[key];
+        // Bila kunci jawaban menunjuk opsi yang dihapus, kosongkan agar tidak menggantung.
+        const correct = question.correct_answer === key ? "" : question.correct_answer;
+        return { ...question, options: next, correct_answer: correct };
+      }),
+    );
+  };
+
   const startEditMode = () => {
     if (loadState.kind !== "ready") return;
     setDraftQuestions(loadState.data.questions);
-    setExpandedIds(new Set(loadState.data.questions.map((question) => question.order_number)));
+    setExpandedIds(new Set(loadState.data.questions.map((question) => question.id)));
     setSaveMessage(null);
     setIsEditMode(true);
   };
@@ -143,7 +196,7 @@ export default function ReviewExam() {
    * tersimpan sebagian tidak, sementara pesannya cuma "gagal menyimpan" tanpa tahu mana
    * yang gagal. Sekarang urut + fail-fast, dan nomor soal yang gagal disebut eksplisit.
    */
-  const saveEdits = async () => {
+  const saveEdits = async (exitEditMode = true) => {
     if (loadState.kind !== "ready") return;
     const loadedState = loadState.data;
 
@@ -153,8 +206,10 @@ export default function ReviewExam() {
     });
 
     if (changedQuestions.length === 0) {
-      setIsEditMode(false);
-      setSaveMessage("Tidak ada perubahan untuk disimpan.");
+      if (exitEditMode) {
+        setIsEditMode(false);
+        setSaveMessage("Tidak ada perubahan untuk disimpan.");
+      }
       return;
     }
 
@@ -171,6 +226,7 @@ export default function ReviewExam() {
           question_content: question.question_content,
           options: question.options,
           correct_answer: question.correct_answer,
+          explanation: question.explanation,
           illustration_prompt: question.illustration_prompt,
           illustration_image: question.illustration_image,
         });
@@ -183,8 +239,10 @@ export default function ReviewExam() {
 
       setLoadState({ kind: "ready", data: { ...loadedState, questions: merged } });
       setDraftQuestions(merged);
-      setIsEditMode(false);
-      setSaveMessage(`Perubahan ${saved.length} soal berhasil disimpan.`);
+      if (exitEditMode) setIsEditMode(false);
+      setSaveMessage(exitEditMode
+        ? `Perubahan ${saved.length} soal berhasil disimpan.`
+        : `Tersimpan otomatis (${saved.length} soal).`);
     } catch (error) {
       const failed = changedQuestions[saved.length];
       setSaveMessage(
@@ -195,6 +253,149 @@ export default function ReviewExam() {
       console.error("[ReviewExam] saveEdits", error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Ref menghindari timer dibuat ulang hanya karena identitas fungsi berubah tiap render.
+  useEffect(() => {
+    autoSaveRef.current = () => saveEdits(false);
+  });
+
+  useEffect(() => {
+    if (!isEditMode || isSaving || loadState.kind !== "ready") return;
+    const hasChanges = draftQuestions.some((draft) => {
+      const original = loadState.data.questions.find((item) => item.id === draft.id);
+      return original ? !questionsEqual(original, draft) : false;
+    });
+    if (!hasChanges) return;
+
+    const timer = window.setTimeout(() => {
+      void autoSaveRef.current();
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [draftQuestions, isEditMode, isSaving, loadState]);
+
+  // Peringatkan user jika meninggalkan tab saat masih ada draft belum tersimpan.
+  useEffect(() => {
+    if (!isEditMode || loadState.kind !== "ready") return;
+    const hasChanges = draftQuestions.some((draft) => {
+      const original = loadState.data.questions.find((item) => item.id === draft.id);
+      return original ? !questionsEqual(original, draft) : false;
+    });
+    if (!hasChanges) return;
+
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [draftQuestions, isEditMode, loadState]);
+
+  // --- Aksi struktural: langsung sinkron ke server, lalu perbarui state lokal ---
+
+  /** Mengganti seluruh daftar soal di state (ready + draft) setelah aksi server. */
+  const applyServerQuestions = (questions: Question[]) => {
+    if (loadState.kind !== "ready") return;
+    const sorted = [...questions].sort((a, b) => a.order_number - b.order_number);
+    setLoadState({ kind: "ready", data: { ...loadState.data, questions: sorted } });
+    setDraftQuestions(sorted);
+  };
+
+  const handleAddQuestion = async (afterOrder: number | null, template?: Question) => {
+    if (loadState.kind !== "ready" || busyAction) return;
+    setBusyAction("add");
+    setSaveMessage(null);
+    try {
+      const res = await examsApi.addQuestion(loadState.data.examId, afterOrder, {
+        question_type: template?.question_type ?? "Pilihan Ganda",
+        cognitive_level: template?.cognitive_level ?? "",
+        difficulty: template?.difficulty ?? "Sedang",
+        question_content: template?.question_content ?? "Tulis pertanyaan di sini.",
+        options: template?.options ?? { A: "Pilihan A", B: "Pilihan B", C: "Pilihan C", D: "Pilihan D" },
+        correct_answer: template?.correct_answer ?? "A",
+        explanation: template?.explanation ?? "",
+      });
+      const added = res.data.question;
+      // Ambil ulang urutan penuh: nomor soal lain mungkin bergeser oleh RPC.
+      const refreshed = await examsApi.get(loadState.data.examId);
+      applyServerQuestions(refreshed.data.questions);
+      setExpandedIds((prev) => new Set(prev).add(added.id));
+      if (!template) setIsEditMode(true);
+      setSaveMessage(template ? "Soal berhasil diduplikat." : "Soal baru ditambahkan. Lengkapi isinya; perubahan tersimpan otomatis.");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Gagal menambahkan soal.");
+      console.error("[ReviewExam] handleAddQuestion", error);
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleDeleteQuestion = async (question: Question) => {
+    if (loadState.kind !== "ready" || busyAction) return;
+    setBusyAction("delete");
+    setSaveMessage(null);
+    try {
+      await examsApi.deleteQuestion(loadState.data.examId, question.id);
+      const refreshed = await examsApi.get(loadState.data.examId);
+      applyServerQuestions(refreshed.data.questions);
+      setSaveMessage("Soal berhasil dihapus.");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Gagal menghapus soal.");
+      console.error("[ReviewExam] handleDeleteQuestion", error);
+    } finally {
+      setBusyAction(null);
+      setDeleteQuestionTarget(null);
+    }
+  };
+
+  const handleMoveQuestion = async (question: Question, direction: -1 | 1) => {
+    if (loadState.kind !== "ready" || busyAction) return;
+    const current = [...loadState.data.questions].sort((a, b) => a.order_number - b.order_number);
+    const index = current.findIndex((item) => item.id === question.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= current.length) return;
+
+    const reordered = [...current];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+
+    setBusyAction("move");
+    setSaveMessage(null);
+    try {
+      const res = await examsApi.reorderQuestions(
+        loadState.data.examId,
+        reordered.map((item) => item.id),
+      );
+      applyServerQuestions(res.data.questions);
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Gagal mengurutkan soal.");
+      console.error("[ReviewExam] handleMoveQuestion", error);
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleRegenerate = async (question: Question, instruction: string) => {
+    if (loadState.kind !== "ready" || busyAction) return;
+    setBusyAction("regen");
+    setSaveMessage(null);
+    try {
+      const res = await examsApi.regenerateQuestion(question.id, instruction);
+      const updated = res.data.question;
+      const merged = loadState.data.questions.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
+      applyServerQuestions(merged);
+      // Kredit terpotong di server; segarkan saldo yang tampil di header/dashboard.
+      await refreshUser().catch(() => undefined);
+      setSaveMessage(`Soal nomor ${updated.order_number} dibuat ulang. Sisa kredit: ${res.data.credits_remaining}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal membuat ulang soal.";
+      setSaveMessage(message.includes("insufficient") || message.includes("cukup")
+        ? "Kredit tidak cukup untuk regenerasi (butuh 1 kredit)."
+        : message);
+      console.error("[ReviewExam] handleRegenerate", error);
+    } finally {
+      setBusyAction(null);
+      setRegenTarget(null);
+      setRegenInstruction("");
     }
   };
 
@@ -321,8 +522,8 @@ export default function ReviewExam() {
             )}
           </div>
 
-          {visibleQuestions.map((q) => {
-            const isOpen = expandedIds.has(q.order_number);
+          {visibleQuestions.map((q, index) => {
+            const isOpen = expandedIds.has(q.id);
             return (
               <div
                 key={q.id}
@@ -331,7 +532,7 @@ export default function ReviewExam() {
                 {/* Header */}
                 <button
                   className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors"
-                  onClick={() => toggleExpand(q.order_number)}
+                  onClick={() => toggleExpand(q.id)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-sm font-bold flex items-center justify-center shrink-0">
@@ -377,15 +578,36 @@ export default function ReviewExam() {
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <div>
                             <label className="text-xs font-semibold text-slate-500">Jenis</label>
-                            <Input value={q.question_type} onChange={(event) => updateDraftQuestion(q.id, { question_type: event.target.value })} className="mt-1 bg-white" />
+                            <select
+                              value={QUESTION_TYPES.includes(q.question_type) ? q.question_type : ""}
+                              onChange={(event) => updateDraftQuestion(q.id, { question_type: event.target.value })}
+                              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                            >
+                              {!QUESTION_TYPES.includes(q.question_type) && <option value="">{q.question_type || "Pilih jenis"}</option>}
+                              {QUESTION_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                            </select>
                           </div>
                           <div>
                             <label className="text-xs font-semibold text-slate-500">Level</label>
-                            <Input value={q.cognitive_level} onChange={(event) => updateDraftQuestion(q.id, { cognitive_level: event.target.value })} className="mt-1 bg-white" />
+                            <select
+                              value={COGNITIVE_LEVELS.find((level) => q.cognitive_level.toUpperCase().startsWith(level)) ?? ""}
+                              onChange={(event) => updateDraftQuestion(q.id, { cognitive_level: event.target.value })}
+                              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                            >
+                              <option value="">—</option>
+                              {COGNITIVE_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                            </select>
                           </div>
                           <div>
                             <label className="text-xs font-semibold text-slate-500">Kesulitan</label>
-                            <Input value={q.difficulty} onChange={(event) => updateDraftQuestion(q.id, { difficulty: event.target.value })} className="mt-1 bg-white" />
+                            <select
+                              value={DIFFICULTY_LEVELS.includes(q.difficulty) ? q.difficulty : ""}
+                              onChange={(event) => updateDraftQuestion(q.id, { difficulty: event.target.value })}
+                              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                            >
+                              <option value="">—</option>
+                              {DIFFICULTY_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                            </select>
                           </div>
                         </div>
                       </div>
@@ -394,6 +616,15 @@ export default function ReviewExam() {
                     )}
 
                     {/* Options */}
+                    {isEditMode && !q.options && (
+                      <button
+                        type="button"
+                        onClick={() => updateDraftQuestion(q.id, { options: { A: "", B: "", C: "", D: "" }, correct_answer: "A" })}
+                        className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Gunakan pilihan jawaban
+                      </button>
+                    )}
                     {q.options && (
                       <div className="space-y-2">
                         {Object.entries(q.options).map(([key, val]) => (
@@ -405,23 +636,65 @@ export default function ReviewExam() {
                                 : "bg-white border border-slate-200 text-slate-700"
                             }`}
                           >
-                            <span className={`font-bold w-5 shrink-0 ${key === q.correct_answer ? "text-emerald-700" : "text-slate-400"}`}>{key}.</span>
                             {isEditMode ? (
-                              <Input
-                                value={val}
-                                onChange={(event) => updateDraftOption(q.id, key, event.target.value)}
-                                className="h-8 bg-white"
-                              />
+                              <button
+                                type="button"
+                                title={key === q.correct_answer ? "Kunci jawaban" : "Tandai sebagai kunci"}
+                                onClick={() => updateDraftQuestion(q.id, { correct_answer: key })}
+                                className={`font-bold w-6 h-6 shrink-0 rounded-full border text-xs ${key === q.correct_answer ? "bg-emerald-600 text-white border-emerald-600" : "border-slate-300 text-slate-500 hover:border-emerald-400"}`}
+                              >
+                                {key}
+                              </button>
+                            ) : (
+                              <span className={`font-bold w-5 shrink-0 ${key === q.correct_answer ? "text-emerald-700" : "text-slate-400"}`}>{key}.</span>
+                            )}
+                            {isEditMode ? (
+                              <>
+                                <Input
+                                  value={val}
+                                  onChange={(event) => updateDraftOption(q.id, key, event.target.value)}
+                                  className="h-8 bg-white"
+                                />
+                                <button
+                                  type="button"
+                                  title="Hapus opsi"
+                                  onClick={() => removeDraftOption(q.id, key)}
+                                  className="shrink-0 text-slate-400 hover:text-red-500"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
                             ) : (
                               <span>{val}</span>
                             )}
                           </div>
                         ))}
+                        {isEditMode && nextOptionKey(q.options) && (
+                          <button
+                            type="button"
+                            onClick={() => addDraftOption(q.id)}
+                            className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Tambah opsi
+                          </button>
+                        )}
+                        {isEditMode && (
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-[11px] text-slate-400">Klik huruf di kiri opsi untuk menandai kunci jawaban.</p>
+                            <button
+                              type="button"
+                              onClick={() => updateDraftQuestion(q.id, { options: null, correct_answer: "" })}
+                              className="text-[11px] font-medium text-red-500 hover:text-red-700"
+                            >
+                              Hapus semua opsi
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* Answer (for non-MC) */}
-                    {isEditMode ? (
+                    {isEditMode && !q.options ? (
                       <div className="grid gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
                         <label className="text-xs font-semibold text-emerald-700">Kunci Jawaban</label>
                         <Textarea
@@ -431,10 +704,29 @@ export default function ReviewExam() {
                           rows={2}
                         />
                       </div>
-                    ) : !q.options && (
+                    ) : !isEditMode && !q.options && (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                         <p className="text-xs text-emerald-600 font-semibold mb-1">Kunci Jawaban</p>
                         <p className="text-sm text-emerald-800 whitespace-pre-wrap">{q.correct_answer}</p>
+                      </div>
+                    )}
+
+                    {/* Pembahasan */}
+                    {isEditMode ? (
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">Pembahasan (opsional)</label>
+                        <Textarea
+                          value={q.explanation ?? ""}
+                          onChange={(event) => updateDraftQuestion(q.id, { explanation: event.target.value || null })}
+                          className="mt-1 bg-white"
+                          rows={3}
+                          placeholder="Jelaskan mengapa jawaban ini benar..."
+                        />
+                      </div>
+                    ) : q.explanation && (
+                      <div className="bg-slate-100 border border-slate-200 rounded-lg p-3">
+                        <p className="text-xs text-slate-500 font-semibold mb-1">Pembahasan</p>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{q.explanation}</p>
                       </div>
                     )}
 
@@ -466,11 +758,64 @@ export default function ReviewExam() {
                         )}
                       </div>
                     )}
+
+                    {/* Toolbar per soal: urut, duplikat, regenerasi, hapus */}
+                    <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction) || isEditMode || index === 0}
+                        onClick={() => handleMoveQuestion(q, -1)}
+                        className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" /> Naik
+                      </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction) || isEditMode || index === visibleQuestions.length - 1}
+                        onClick={() => handleMoveQuestion(q, 1)}
+                        className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" /> Turun
+                      </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction) || isEditMode}
+                        onClick={() => handleAddQuestion(q.order_number, q)}
+                        className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        <Copy className="w-3.5 h-3.5" /> Duplikat
+                      </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction) || isEditMode}
+                        onClick={() => { setRegenTarget(q); setRegenInstruction(""); }}
+                        className="flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> Buat Ulang (1 kredit)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction) || isEditMode || visibleQuestions.length <= 1}
+                        onClick={() => setDeleteQuestionTarget(q)}
+                        className="ml-auto flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Hapus
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             );
           })}
+
+          <button
+            type="button"
+            disabled={Boolean(busyAction) || isEditMode}
+            onClick={() => handleAddQuestion(null)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-200 py-3 text-sm font-medium text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" /> Tambah soal baru
+          </button>
         </div>
 
         {/* Sidebar Export */}
@@ -556,6 +901,63 @@ export default function ReviewExam() {
         onOpenChange={setBillingOpen}
         defaultTab="subscription"
       />
+
+      {/* Konfirmasi hapus soal */}
+      <Dialog open={Boolean(deleteQuestionTarget)} onOpenChange={(open) => { if (!open) setDeleteQuestionTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus soal ini?</DialogTitle>
+            <DialogDescription>
+              Soal nomor {deleteQuestionTarget?.order_number} akan dihapus permanen dan nomor soal berikutnya akan disesuaikan. Tindakan ini tidak bisa dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteQuestionTarget(null)} disabled={busyAction === "delete"}>
+              Batal
+            </Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => { if (deleteQuestionTarget) void handleDeleteQuestion(deleteQuestionTarget); }}
+              disabled={busyAction === "delete"}
+            >
+              {busyAction === "delete" ? "Menghapus..." : "Hapus Soal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerasi soal */}
+      <Dialog open={Boolean(regenTarget)} onOpenChange={(open) => { if (!open) { setRegenTarget(null); setRegenInstruction(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Buat ulang soal nomor {regenTarget?.order_number}?</DialogTitle>
+            <DialogDescription>
+              AI akan membuat soal pengganti dengan jenis dan topik yang sama. Biaya 1 kredit. Soal lama akan tergantikan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-xs font-semibold text-slate-500">Instruksi tambahan (opsional)</label>
+            <Textarea
+              value={regenInstruction}
+              onChange={(event) => setRegenInstruction(event.target.value)}
+              placeholder="Contoh: buat lebih sulit, ganti konteks ke kehidupan sehari-hari..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setRegenTarget(null); setRegenInstruction(""); }} disabled={busyAction === "regen"}>
+              Batal
+            </Button>
+            <Button
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={() => { if (regenTarget) void handleRegenerate(regenTarget, regenInstruction); }}
+              disabled={busyAction === "regen"}
+            >
+              {busyAction === "regen" ? "Membuat..." : "Buat Ulang (1 kredit)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

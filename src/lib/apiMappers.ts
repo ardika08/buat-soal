@@ -67,6 +67,7 @@ export interface Question {
   question_content: string;
   options: Record<string, string> | null;
   correct_answer: string;
+  explanation: string | null;
   illustration_prompt: string | null;
   illustration_image: string | null;
 }
@@ -181,6 +182,7 @@ export function normalizeQuestion(question: Record<string, unknown>): Question {
       ? options as Record<string, string>
       : null,
     correct_answer: toText(question.correct_answer),
+    explanation: toOptionalText(question.explanation),
     illustration_prompt: toOptionalText(question.illustration_prompt),
     illustration_image: toOptionalText(question.illustration_image),
   };

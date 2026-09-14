@@ -207,6 +207,9 @@ export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
   addText("KUNCI JAWABAN", 13, "bold", 7);
   questions.forEach((question, index) => {
     addText(`${index + 1}. ${question.correct_answer}`, 10, "normal", 5);
+    if (question.explanation) {
+      addText(`   Pembahasan: ${question.explanation}`, 9, "normal", 5);
+    }
   });
 
   pdf.save(filename(exam, "pdf"));
@@ -306,9 +309,18 @@ export async function exportExamDocx(exam: ExamSession, questions: Question[]) {
           ...questionParagraphs,
           new Paragraph(""),
           new Paragraph({ text: "KUNCI JAWABAN", heading: HeadingLevel.HEADING_1 }),
-          ...questions.map((question, index) =>
+          ...questions.flatMap((question, index) => [
             new Paragraph(`${index + 1}. ${question.correct_answer}`),
-          ),
+            ...(question.explanation
+              ? [new Paragraph({
+                  spacing: { after: 100 },
+                  children: [
+                    new TextRun({ text: "Pembahasan: ", bold: true }),
+                    new TextRun(question.explanation),
+                  ],
+                })]
+              : []),
+          ]),
         ],
       },
     ],
