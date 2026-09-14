@@ -1,9 +1,6 @@
 import jsPDF from "jspdf";
 import type { PaymentOrder } from "@/lib/apiMappers";
-
-export function paymentInvoiceNumber(order: PaymentOrder): string {
-  return order.provider_order_id || `SOALIFY-${String(order.id).padStart(8, "0")}`;
-}
+import { paymentInvoiceNumber, paymentTransactionNumber } from "@/lib/paymentIdentifiers";
 
 export function exportPaymentReceipt(order: PaymentOrder): void {
   if (order.status !== "paid") {
@@ -11,7 +8,8 @@ export function exportPaymentReceipt(order: PaymentOrder): void {
   }
 
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
-  const invoice = paymentInvoiceNumber(order);
+  const invoice = paymentInvoiceNumber(order.id);
+  const transactionNumber = paymentTransactionNumber(order.id);
   const paidAt = order.paid_at || order.created_at;
 
   pdf.setFillColor(79, 70, 229);
@@ -36,7 +34,8 @@ export function exportPaymentReceipt(order: PaymentOrder): void {
 
   const rows: Array<[string, string]> = [
     ["Nomor invoice", invoice],
-    ["Nomor transaksi", order.provider_transaction_id || "-"],
+    ["Nomor transaksi", transactionNumber],
+    ["Referensi provider", order.provider_transaction_id || order.provider_order_id || "-"],
     ["Tanggal pembayaran", formatDateTime(paidAt)],
     ["Nama pembeli", order.customer_name || "-"],
     ["Email", order.customer_email || "-"],

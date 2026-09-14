@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { billingApi, type BillingPayment } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { paymentInvoiceNumber } from "@/lib/paymentIdentifiers";
 import {
   describeOutcome,
   resolveOrderId,
@@ -120,7 +121,7 @@ export default function BillingReturn() {
               <div>
                 <h1 className="text-xl font-bold text-slate-900">Status Pembayaran</h1>
                 <p className="mt-2 text-sm text-slate-600">{outcome.message}</p>
-                <p className="mt-1 text-xs text-slate-400">Pesanan #{orderId}</p>
+                <p className="mt-1 text-xs text-slate-400">Invoice {paymentInvoiceNumber(orderId)}</p>
               </div>
 
               {payment && (

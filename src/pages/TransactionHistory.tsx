@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownCircle, ArrowUpCircle, Clock3, Coins, Download, FileText, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { billingApi, type CreditTransaction, type PaymentOrder, type PaymentStatus } from "@/lib/api";
-import { exportPaymentReceipt, paymentInvoiceNumber } from "@/lib/exportPaymentReceipt";
+import { exportPaymentReceipt } from "@/lib/exportPaymentReceipt";
+import { paymentInvoiceNumber, paymentTransactionNumber } from "@/lib/paymentIdentifiers";
 import { useAuth } from "@/lib/auth-context";
 
 const STATUS: Record<PaymentStatus, { label: string; className: string }> = {
@@ -86,11 +87,16 @@ export default function TransactionHistory() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <FileText className="h-4 w-4 text-indigo-500" />
-                      <p className="font-semibold text-slate-900">{paymentInvoiceNumber(order)}</p>
+                      <p className="font-semibold text-slate-900">{paymentInvoiceNumber(order.id)}</p>
                       <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-500">{packageName(order)} · {formatDate(order.created_at)}</p>
-                    {order.provider_transaction_id && <p className="mt-1 truncate text-xs text-slate-400">ID transaksi: {order.provider_transaction_id}</p>}
+                    <p className="mt-1 text-xs font-medium text-slate-500">Nomor transaksi: {paymentTransactionNumber(order.id)}</p>
+                    {(order.provider_transaction_id || order.provider_order_id) && (
+                      <p className="mt-1 truncate text-xs text-slate-400">
+                        Referensi {order.provider}: {order.provider_transaction_id || order.provider_order_id}
+                      </p>
+                    )}
                   </div>
                   <div className="md:text-right">
                     <p className="font-bold text-slate-900">{formatRupiah(order.amount)}</p>
@@ -129,7 +135,7 @@ export default function TransactionHistory() {
                     {incoming ? <ArrowDownCircle className="h-5 w-5" /> : <ArrowUpCircle className="h-5 w-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900">{transaction.description || transactionLabel(transaction)}</p>
+                    <p className="font-medium text-slate-900">{transactionDescription(transaction)}</p>
                     <p className="mt-1 text-xs text-slate-500">{formatDate(transaction.created_at)} · {transactionLabel(transaction)}</p>
                   </div>
                   <p className={`whitespace-nowrap font-bold ${incoming ? "text-emerald-600" : "text-indigo-600"}`}>
@@ -156,4 +162,8 @@ function formatRupiah(value: number) { return new Intl.NumberFormat("id-ID", { s
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "-" : new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(date); }
 function packageName(order: PaymentOrder) { return order.order_type === "subscription" ? `Langganan ${order.duration_months ?? ""} bulan`.trim() : `Top-up ${order.credits.toLocaleString("id-ID")} kredit`; }
 function transactionLabel(transaction: CreditTransaction) { return ({ topup: "Top-up kredit", subscription: "Langganan", deduction: "Pemakaian kredit", bonus: "Bonus kredit" })[transaction.type]; }
+function transactionDescription(transaction: CreditTransaction) {
+  const description = transaction.description || transactionLabel(transaction);
+  return description.replace(/order #(\d+)/gi, (_, id: string) => paymentInvoiceNumber(Number(id)));
+}
 function safeCheckoutUrl(value: string | null) { try { const url = new URL(value ?? ""); return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null; } catch { return null; } }
