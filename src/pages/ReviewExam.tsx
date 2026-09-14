@@ -17,6 +17,7 @@ import { examsApi, questionBankApi, type ExamSession, type Question } from "@/li
 import { useAuth } from "@/lib/auth-context";
 import { exportExamDocx, exportExamPdf } from "@/lib/exportExam";
 import { exportKisiKisiDocx } from "@/lib/exportKisiKisi";
+import { analyzeExamQuality, type QualityDistributionItem } from "@/lib/examQuality";
 
 interface ReviewState {
   examId: number;
@@ -49,6 +50,31 @@ function questionsEqual(a: Question, b: Question) {
 function nextOptionKey(options: Record<string, string> | null): string | null {
   const used = new Set(Object.keys(options ?? {}));
   return OPTION_KEYS.find((key) => !used.has(key)) ?? null;
+}
+
+function QualityDistribution({ title, items }: { title: string; items: QualityDistributionItem[] }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold text-slate-600">{title}</p>
+      {items.length === 0 ? (
+        <p className="text-xs text-slate-400">Belum ada data.</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.label}>
+              <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+                <span className="truncate text-slate-600" title={item.label}>{item.label}</span>
+                <span className="shrink-0 font-semibold text-slate-700">{item.count} · {item.percentage}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${item.percentage}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ReviewExam() {
@@ -453,6 +479,7 @@ export default function ReviewExam() {
   const loadedState = loadState.data;
   const { exam, questions, creditsRemaining } = loadedState;
   const visibleQuestions = isEditMode ? draftQuestions : questions;
+  const quality = analyzeExamQuality(exam, visibleQuestions);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -896,7 +923,37 @@ export default function ReviewExam() {
 
         {/* Sidebar Export */}
         <div className="w-full md:w-72 space-y-4 shrink-0">
-          <div className="bg-white border shadow-sm rounded-2xl p-5 sticky top-6">
+          <div className="sticky top-6 space-y-4">
+            <div className="rounded-2xl border bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between border-b pb-3">
+                <h3 className="font-bold text-slate-800">Analisis Kualitas</h3>
+                <span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">{quality.estimatedMinutes} menit</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Estimasi waktu pengerjaan berdasarkan jenis dan kesulitan soal.</p>
+              <div className="mt-4 space-y-4">
+                <QualityDistribution title="Kesulitan" items={quality.difficulty} />
+                <QualityDistribution title="Level Kognitif" items={quality.cognitive} />
+                <QualityDistribution title="Topik" items={quality.topics} />
+              </div>
+              <div className="mt-4 border-t pt-4">
+                <p className="text-xs font-semibold text-slate-700">Pemeriksaan otomatis</p>
+                {quality.warnings.length === 0 ? (
+                  <p className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 p-2 text-xs text-emerald-700">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />Tidak ditemukan jawaban ambigu atau soal duplikat.
+                  </p>
+                ) : (
+                  <div className="mt-2 max-h-40 space-y-2 overflow-y-auto">
+                    {quality.warnings.map((warning, index) => (
+                      <p key={`${warning.kind}-${warning.questionNumbers.join("-")}-${index}`} className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs leading-5 text-amber-800">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{warning.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white border shadow-sm rounded-2xl p-5">
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Ekspor Dokumen</h3>
 
             <div className="space-y-3">
@@ -969,6 +1026,7 @@ export default function ReviewExam() {
               <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Dashboard
             </Button>
           </Link>
+          </div>
         </div>
       </div>
 
