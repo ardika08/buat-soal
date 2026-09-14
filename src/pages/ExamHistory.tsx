@@ -12,6 +12,7 @@ export default function ExamHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<ExamSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Tidak menyalakan loading di sini: pemanggil yang tahu kapan mulai memuat (klik
@@ -50,6 +51,7 @@ export default function ExamHistory() {
 
     setIsDeleting(true);
     setIsLoading(true);
+    setDeleteError(null);
 
     try {
       await examsApi.delete(deleteTarget.id);
@@ -65,6 +67,11 @@ export default function ExamHistory() {
       } else {
         await loadHistory(page);
       }
+    } catch (error) {
+      setDeleteError(error instanceof Error
+        ? `Gagal menghapus riwayat: ${error.message}`
+        : "Gagal menghapus riwayat. Periksa koneksi lalu coba lagi.");
+      setIsLoading(false);
     } finally {
       setIsDeleting(false);
     }
@@ -145,7 +152,13 @@ export default function ExamHistory() {
       <DeleteExamDialog
         exam={deleteTarget}
         isDeleting={isDeleting}
-        onCancel={() => !isDeleting && setDeleteTarget(null)}
+        errorMessage={deleteError}
+        onCancel={() => {
+          if (!isDeleting) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
         onConfirm={() => void confirmDeleteExam()}
       />
     </div>

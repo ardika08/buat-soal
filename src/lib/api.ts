@@ -466,6 +466,18 @@ export const examsApi = {
   },
 };
 
+export interface SalesProofEntry {
+  display_name: string;
+  purchase_label: string;
+  paid_at: string;
+}
+
+export const marketingApi = {
+  salesProof: async (): ApiResponse<{ entries: SalesProofEntry[] }> => ({
+    data: await invokeFunction("sales-proof", {}),
+  }),
+};
+
 export const billingApi = {
   packages: async (): ApiResponse<{ packages: BillingPackage[] }> => ({
     data: {

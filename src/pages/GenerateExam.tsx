@@ -180,7 +180,7 @@ export default function GenerateExam() {
     "Fase A": [1, 2],
     "Fase B": [3, 4],
     "Fase C": [5, 6],
-    "Fase D": [7, 8],
+    "Fase D": [7, 8, 9],
     "Fase E": [10],
     "Fase F": [11, 12],
   };
@@ -196,10 +196,31 @@ export default function GenerateExam() {
     setManualSubject("");
   };
 
+  const referenceValidationError = () => {
+    if (referenceType === "PDF") {
+      if (!referenceFile) return "File PDF materi wajib dipilih.";
+      if (referenceFile.type !== "application/pdf" && !referenceFile.name.toLowerCase().endsWith(".pdf")) {
+        return "File referensi harus berformat PDF.";
+      }
+      if (referenceFile.size > 10 * 1024 * 1024) return "Ukuran file PDF maksimal 10 MB.";
+    }
+    if (referenceType === "Manual" && !referenceText.trim()) {
+      return "Teks materi wajib diisi jika memilih Teks Manual.";
+    }
+    return null;
+  };
+
   const handleNext = () => {
     if (step === 2 && !areTopicsComplete) {
       setErrorMsg("Topik Pembelajaran dan Tujuan Pembelajaran wajib diisi.");
       return;
+    }
+    if (step === 2) {
+      const referenceError = referenceValidationError();
+      if (referenceError) {
+        setErrorMsg(referenceError);
+        return;
+      }
     }
 
     setErrorMsg(null);
@@ -257,6 +278,26 @@ export default function GenerateExam() {
     if (!areTopicsComplete) {
       setErrorMsg("Topik Pembelajaran dan Tujuan Pembelajaran wajib diisi.");
       setStep(2);
+      return;
+    }
+
+    const referenceError = referenceValidationError();
+    if (referenceError) {
+      setErrorMsg(referenceError);
+      setStep(2);
+      return;
+    }
+    if (activeFormatCount === 0) {
+      setErrorMsg("Aktifkan minimal satu format soal.");
+      return;
+    }
+    if (totalSoal < 1 || totalSoal > 100) {
+      setErrorMsg("Jumlah soal harus antara 1 dan 100.");
+      return;
+    }
+    if (!Number.isFinite(Number(timeAllocation)) || Number(timeAllocation) < 1) {
+      setErrorMsg("Alokasi waktu harus lebih dari 0 menit.");
+      setStep(1);
       return;
     }
 

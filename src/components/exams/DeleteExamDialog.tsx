@@ -12,11 +12,12 @@ import type { ExamSession } from "@/lib/api";
 interface DeleteExamDialogProps {
   exam: ExamSession | null;
   isDeleting: boolean;
+  errorMessage?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-export default function DeleteExamDialog({ exam, isDeleting, onCancel, onConfirm }: DeleteExamDialogProps) {
+export default function DeleteExamDialog({ exam, isDeleting, errorMessage, onCancel, onConfirm }: DeleteExamDialogProps) {
   return (
     <Dialog open={Boolean(exam)} onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden" showCloseButton={!isDeleting}>
@@ -34,6 +35,11 @@ export default function DeleteExamDialog({ exam, isDeleting, onCancel, onConfirm
           <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
             Tindakan ini tidak bisa dikembalikan.
           </div>
+          {errorMessage && (
+            <div role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {errorMessage}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col-reverse gap-3 border-t bg-slate-50 px-6 py-5 sm:flex-row sm:justify-end sm:px-7">

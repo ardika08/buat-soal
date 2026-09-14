@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [billingTab, setBillingTab] = useState<"topup" | "subscription">("topup");
   const [deleteTarget, setDeleteTarget] = useState<ExamSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [subscriptionInfoDismissed, setSubscriptionInfoDismissed] = useState(false);
   const subscriptionInfoOpen = Boolean(user) && !subscriptionInfoDismissed && shouldShowSubscriptionInfo();
 
@@ -47,12 +48,17 @@ export default function Dashboard() {
     }
 
     setIsDeleting(true);
+    setDeleteError(null);
 
     try {
       await examsApi.delete(deleteTarget.id);
       setRecentExams((current) => current.filter((item) => item.id !== deleteTarget.id));
       setTotalQuestions((current) => Math.max(0, current - (deleteTarget.questions_count ?? deleteTarget.questions?.length ?? 0)));
       setDeleteTarget(null);
+    } catch (error) {
+      setDeleteError(error instanceof Error
+        ? `Gagal menghapus riwayat: ${error.message}`
+        : "Gagal menghapus riwayat. Periksa koneksi lalu coba lagi.");
     } finally {
       setIsDeleting(false);
     }
@@ -199,7 +205,13 @@ export default function Dashboard() {
       <DeleteExamDialog
         exam={deleteTarget}
         isDeleting={isDeleting}
-        onCancel={() => !isDeleting && setDeleteTarget(null)}
+        errorMessage={deleteError}
+        onCancel={() => {
+          if (!isDeleting) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
         onConfirm={() => void confirmDeleteExam()}
       />
     </div>
