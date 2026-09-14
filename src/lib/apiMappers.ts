@@ -57,6 +57,24 @@ export interface GenerateExamPayload {
   formats: ExamFormat[];
 }
 
+export interface BankQuestion {
+  id: number;
+  source_question_id: number | null;
+  subject: string;
+  class_phase: string;
+  topic: string | null;
+  difficulty: string;
+  question_type: string;
+  cognitive_level: string;
+  question_content: string;
+  options: Record<string, string> | null;
+  correct_answer: string;
+  explanation: string | null;
+  illustration_prompt: string | null;
+  illustration_image: string | null;
+  created_at: string;
+}
+
 export interface Question {
   id: number;
   exam_session_id: number;
@@ -163,6 +181,29 @@ export function normalizeExam(exam: Record<string, unknown>): ExamSession {
     topics: toObjectArray<Topic>(exam.topics),
     credits_consumed: toNumber(exam.credits_consumed),
     created_at: toText(exam.created_at),
+  };
+}
+
+export function normalizeBankQuestion(question: Record<string, unknown>): BankQuestion {
+  const options = question.options;
+  return {
+    id: toNumber(question.id),
+    source_question_id: question.source_question_id == null ? null : toNumber(question.source_question_id),
+    subject: toText(question.subject),
+    class_phase: toText(question.class_phase),
+    topic: toOptionalText(question.topic),
+    difficulty: toText(question.difficulty),
+    question_type: toText(question.question_type),
+    cognitive_level: toText(question.cognitive_level),
+    question_content: toText(question.question_content),
+    options: options !== null && typeof options === "object" && !Array.isArray(options)
+      ? options as Record<string, string>
+      : null,
+    correct_answer: toText(question.correct_answer),
+    explanation: toOptionalText(question.explanation),
+    illustration_prompt: toOptionalText(question.illustration_prompt),
+    illustration_image: toOptionalText(question.illustration_image),
+    created_at: toText(question.created_at),
   };
 }
 

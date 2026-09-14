@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, Sparkles } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, Sparkles, BookOpen, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import BillingDialog from "@/components/billing/BillingDialog";
-import { examsApi, type ExamSession, type Question } from "@/lib/api";
+import { examsApi, questionBankApi, type ExamSession, type Question } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { exportExamDocx, exportExamPdf } from "@/lib/exportExam";
 import { exportKisiKisiDocx } from "@/lib/exportKisiKisi";
@@ -88,6 +88,8 @@ export default function ReviewExam() {
   const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<Question | null>(null);
   const [regenTarget, setRegenTarget] = useState<Question | null>(null);
   const [regenInstruction, setRegenInstruction] = useState("");
+  const [bankSelection, setBankSelection] = useState<Set<number>>(new Set());
+  const [isSavingToBank, setIsSavingToBank] = useState(false);
   const autoSaveRef = useRef<() => Promise<void>>(async () => undefined);
 
   /**
@@ -297,6 +299,8 @@ export default function ReviewExam() {
     const sorted = [...questions].sort((a, b) => a.order_number - b.order_number);
     setLoadState({ kind: "ready", data: { ...loadState.data, questions: sorted } });
     setDraftQuestions(sorted);
+    const validIds = new Set(sorted.map((question) => question.id));
+    setBankSelection((current) => new Set([...current].filter((id) => validIds.has(id))));
   };
 
   const handleAddQuestion = async (afterOrder: number | null, template?: Question) => {
@@ -369,6 +373,30 @@ export default function ReviewExam() {
       console.error("[ReviewExam] handleMoveQuestion", error);
     } finally {
       setBusyAction(null);
+    }
+  };
+
+  const toggleBankSelection = (questionId: number) => {
+    setBankSelection((current) => {
+      const next = new Set(current);
+      if (next.has(questionId)) next.delete(questionId); else next.add(questionId);
+      return next;
+    });
+  };
+
+  const saveSelectedToBank = async () => {
+    if (bankSelection.size === 0 || isSavingToBank) return;
+    setIsSavingToBank(true);
+    setSaveMessage(null);
+    try {
+      const response = await questionBankApi.saveQuestions([...bankSelection]);
+      const { saved, duplicates } = response.data;
+      setSaveMessage(`${saved} soal disimpan ke bank${duplicates > 0 ? `; ${duplicates} duplikat dilewati` : ""}.`);
+      setBankSelection(new Set());
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Gagal menyimpan ke bank soal.");
+    } finally {
+      setIsSavingToBank(false);
     }
   };
 
@@ -522,6 +550,40 @@ export default function ReviewExam() {
             )}
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <button
+              type="button"
+              onClick={() => {
+                const allSelected = visibleQuestions.length > 0
+                  && visibleQuestions.every((question) => bankSelection.has(question.id));
+                setBankSelection(allSelected
+                  ? new Set()
+                  : new Set(visibleQuestions.map((question) => question.id)));
+              }}
+              disabled={visibleQuestions.length === 0 || isEditMode}
+              className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {visibleQuestions.length > 0 && visibleQuestions.every((question) => bankSelection.has(question.id))
+                ? <CheckSquare className="h-4 w-4 text-indigo-600" />
+                : <Square className="h-4 w-4" />}
+              Pilih semua
+            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to="/question-bank" className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <BookOpen className="h-4 w-4" />
+                Buka Bank Soal
+              </Link>
+              <Button
+                type="button"
+                disabled={bankSelection.size === 0 || isSavingToBank || isEditMode}
+                onClick={() => void saveSelectedToBank()}
+                className="bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                {isSavingToBank ? "Menyimpan..." : `Simpan ke Bank (${bankSelection.size})`}
+              </Button>
+            </div>
+          </div>
+
           {visibleQuestions.map((q, index) => {
             const isOpen = expandedIds.has(q.id);
             return (
@@ -530,10 +592,23 @@ export default function ReviewExam() {
                 className={`bg-white border rounded-xl overflow-hidden transition-shadow ${isOpen ? "shadow-md border-indigo-200" : "shadow-sm"}`}
               >
                 {/* Header */}
-                <button
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors"
-                  onClick={() => toggleExpand(q.id)}
-                >
+                <div className="flex w-full items-center hover:bg-slate-50 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => toggleBankSelection(q.id)}
+                    disabled={isEditMode}
+                    aria-label={`Pilih soal nomor ${q.order_number} untuk bank soal`}
+                    className="ml-4 shrink-0 text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {bankSelection.has(q.id)
+                      ? <CheckSquare className="h-5 w-5" />
+                      : <Square className="h-5 w-5 text-slate-400" />}
+                  </button>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center justify-between p-4 text-left"
+                    onClick={() => toggleExpand(q.id)}
+                  >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-sm font-bold flex items-center justify-center shrink-0">
                       {q.order_number}
@@ -558,8 +633,9 @@ export default function ReviewExam() {
                       </div>
                     </div>
                   </div>
-                  {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
-                </button>
+                    {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+                  </button>
+                </div>
 
                 {/* Expanded Content */}
                 {isOpen && (

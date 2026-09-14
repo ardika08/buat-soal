@@ -9,6 +9,7 @@ import ExamHistory from "./pages/ExamHistory";
 import GenerateExam from "./pages/GenerateExam";
 import Login from "./pages/Login";
 import ReviewExam from "./pages/ReviewExam";
+import QuestionBank from "./pages/QuestionBank";
 
 function App() {
   if (!isSupabaseConfigured) {
@@ -43,7 +44,8 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id`}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="history" element={<ExamHistory />} />
+              <Route path="/history" element={<ExamHistory />} />
+              <Route path="/question-bank" element={<QuestionBank />} />
               <Route path="generate" element={<GenerateExam />} />
               <Route path="review" element={<ReviewExam />} />
               <Route path="billing/return" element={<BillingReturn />} />

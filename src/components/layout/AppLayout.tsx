@@ -55,6 +55,16 @@ export default function AppLayout() {
               >
                 Riwayat
               </Link>
+              <Link
+                to="/question-bank"
+                className={`px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === "/question-bank"
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                Bank Soal
+              </Link>
             </nav>
 
             <div className="h-6 w-px bg-slate-200 hidden md:block"></div>

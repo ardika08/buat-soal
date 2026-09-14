@@ -31,6 +31,7 @@ class ApiError extends Error {
 // Di-ekspor ulang dari sini supaya seluruh kode yang sudah ada tetap jalan.
 export type {
   AuthUser,
+  BankQuestion,
   ExamFormat,
   Topic,
   DifficultyDistribution,
@@ -41,6 +42,7 @@ export type {
 } from "@/lib/apiMappers";
 export {
   formatUser,
+  normalizeBankQuestion,
   normalizeExam,
   normalizeQuestion,
   payloadFromFormData,
@@ -49,10 +51,12 @@ export {
 } from "@/lib/apiMappers";
 import {
   formatUser,
+  normalizeBankQuestion,
   normalizeExam,
   normalizeQuestion,
   payloadFromFormData,
   type AuthUser,
+  type BankQuestion,
   type ExamSession,
   type GenerateExamPayload,
   type Question,
@@ -237,9 +241,9 @@ export const examsApi = {
     };
   },
 
-  list: async (page = 1): ApiResponse<PaginatedExams> => {
+  list: async (page = 1, requestedPerPage = 10): ApiResponse<PaginatedExams> => {
     const profile = await currentProfile();
-    const perPage = 10;
+    const perPage = Math.min(100, Math.max(1, requestedPerPage));
     const from = (page - 1) * perPage;
     const to = from + perPage - 1;
 
@@ -463,6 +467,68 @@ export const examsApi = {
     }
 
     return { data: { message: "Sesi ujian berhasil dihapus." } };
+  },
+};
+
+export interface QuestionBankFilters {
+  subject?: string;
+  classPhase?: string;
+  topic?: string;
+  difficulty?: string;
+  search?: string;
+}
+
+export const questionBankApi = {
+  list: async (filters: QuestionBankFilters = {}): ApiResponse<{ questions: BankQuestion[] }> => {
+    let query = supabase
+      .from("question_bank")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (filters.subject) query = query.eq("subject", filters.subject);
+    if (filters.classPhase) query = query.eq("class_phase", filters.classPhase);
+    if (filters.topic) query = query.eq("topic", filters.topic);
+    if (filters.difficulty) query = query.eq("difficulty", filters.difficulty);
+    if (filters.search?.trim()) {
+      query = query.ilike("question_content", `%${filters.search.trim()}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new ApiError(error.message);
+    return { data: { questions: (data ?? []).map(normalizeBankQuestion) } };
+  },
+
+  saveQuestions: async (questionIds: number[]): ApiResponse<{ requested: number; saved: number; duplicates: number }> => {
+    const { data, error } = await supabase.rpc("save_questions_to_bank", {
+      p_question_ids: questionIds,
+    });
+    if (error || !data) throw new ApiError(error?.message ?? "Gagal menyimpan ke bank soal.", 422);
+    return { data: data as { requested: number; saved: number; duplicates: number } };
+  },
+
+  delete: async (bankId: number): ApiResponse<{ message: string }> => {
+    const { error } = await supabase.rpc("delete_bank_question", { p_bank_id: bankId });
+    if (error) throw new ApiError(error.message, 422);
+    return { data: { message: "Soal dihapus dari bank." } };
+  },
+
+  createExam: async (bankIds: number[], name: string): ApiResponse<{ exam_id: number; questions_added: number }> => {
+    const { data, error } = await supabase.rpc("create_exam_from_bank", {
+      p_bank_ids: bankIds,
+      p_exam_name: name,
+    });
+    if (error || !data) throw new ApiError(error?.message ?? "Gagal membuat paket soal.", 422);
+    return { data: data as { exam_id: number; questions_added: number } };
+  },
+
+  appendToExam: async (examId: number, bankIds: number[]): ApiResponse<{ exam_id: number; added: number; duplicates: number }> => {
+    const { data, error } = await supabase.rpc("append_bank_to_exam", {
+      p_exam_id: examId,
+      p_bank_ids: bankIds,
+    });
+    if (error || !data) throw new ApiError(error?.message ?? "Gagal menggabungkan soal.", 422);
+    return { data: data as { exam_id: number; added: number; duplicates: number } };
   },
 };
 

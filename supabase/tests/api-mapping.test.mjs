@@ -17,7 +17,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 
 const api = await import(pathToFileURL(join(root, "src", "lib", "apiMappers.ts")).href);
-const { formatUser, normalizeExam, normalizeQuestion, payloadFromFormData } = api;
+const { formatUser, normalizeBankQuestion, normalizeExam, normalizeQuestion, payloadFromFormData } = api;
 
 // --- Profil pengguna ---
 
@@ -190,6 +190,53 @@ test("normalizeQuestion mengosongkan kolom opsional yang hilang, bukan menulis u
 test("normalizeQuestion tidak meneruskan array sebagai objek pilihan", () => {
   const question = normalizeQuestion({ ...QUESTION_ROW, options: ["A", "B"] });
 
+  assert.equal(question.options, null);
+});
+
+// --- Bank soal ---
+
+const BANK_QUESTION_ROW = {
+  id: 201,
+  source_question_id: 101,
+  subject: "Matematika",
+  class_phase: "Fase C",
+  topic: "Bilangan",
+  difficulty: "Mudah",
+  question_type: "Pilihan Ganda",
+  cognitive_level: "C2",
+  question_content: "Berapa 2 + 2?",
+  options: { A: "3", B: "4" },
+  correct_answer: "B",
+  explanation: "Hasilnya empat.",
+  illustration_prompt: null,
+  illustration_image: null,
+  created_at: "2026-09-14T01:00:00.000Z",
+};
+
+test("normalizeBankQuestion memetakan snapshot soal", () => {
+  const question = normalizeBankQuestion(BANK_QUESTION_ROW);
+  assert.equal(question.id, 201);
+  assert.equal(question.source_question_id, 101);
+  assert.equal(question.topic, "Bilangan");
+  assert.deepEqual(question.options, { A: "3", B: "4" });
+});
+
+test("normalizeBankQuestion memberi default aman untuk kolom null", () => {
+  const question = normalizeBankQuestion({
+    ...BANK_QUESTION_ROW,
+    source_question_id: null,
+    topic: null,
+    difficulty: null,
+    explanation: undefined,
+  });
+  assert.equal(question.source_question_id, null);
+  assert.equal(question.topic, null);
+  assert.equal(question.difficulty, "");
+  assert.equal(question.explanation, null);
+});
+
+test("normalizeBankQuestion tidak meneruskan array sebagai objek pilihan", () => {
+  const question = normalizeBankQuestion({ ...BANK_QUESTION_ROW, options: ["A", "B"] });
   assert.equal(question.options, null);
 });
 
