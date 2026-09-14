@@ -57,6 +57,37 @@ export interface GenerateExamPayload {
   formats: ExamFormat[];
 }
 
+export type CreditTransactionType = "topup" | "subscription" | "deduction" | "bonus";
+export type PaymentStatus = "pending" | "paid" | "expired" | "failed" | "cancelled";
+
+export interface CreditTransaction {
+  id: number;
+  type: CreditTransactionType;
+  amount: number;
+  description: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  created_at: string;
+}
+
+export interface PaymentOrder {
+  id: number;
+  package_id: string;
+  order_type: "topup" | "subscription";
+  provider: string;
+  provider_order_id: string | null;
+  provider_transaction_id: string | null;
+  status: PaymentStatus;
+  amount: number;
+  credits: number;
+  duration_months: number | null;
+  checkout_url: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
 export interface BankQuestion {
   id: number;
   source_question_id: number | null;
@@ -181,6 +212,42 @@ export function normalizeExam(exam: Record<string, unknown>): ExamSession {
     topics: toObjectArray<Topic>(exam.topics),
     credits_consumed: toNumber(exam.credits_consumed),
     created_at: toText(exam.created_at),
+  };
+}
+
+export function normalizeCreditTransaction(transaction: Record<string, unknown>): CreditTransaction {
+  const knownTypes: CreditTransactionType[] = ["topup", "subscription", "deduction", "bonus"];
+  const rawType = toText(transaction.type) as CreditTransactionType;
+  return {
+    id: toNumber(transaction.id),
+    type: knownTypes.includes(rawType) ? rawType : "bonus",
+    amount: toNumber(transaction.amount),
+    description: toOptionalText(transaction.description),
+    reference_type: toOptionalText(transaction.reference_type),
+    reference_id: toOptionalText(transaction.reference_id),
+    created_at: toText(transaction.created_at),
+  };
+}
+
+export function normalizePaymentOrder(order: Record<string, unknown>): PaymentOrder {
+  const knownStatuses: PaymentStatus[] = ["pending", "paid", "expired", "failed", "cancelled"];
+  const rawStatus = toText(order.status) as PaymentStatus;
+  return {
+    id: toNumber(order.id),
+    package_id: toText(order.package_id),
+    order_type: order.order_type === "subscription" ? "subscription" : "topup",
+    provider: toText(order.provider),
+    provider_order_id: toOptionalText(order.provider_order_id),
+    provider_transaction_id: toOptionalText(order.provider_transaction_id),
+    status: knownStatuses.includes(rawStatus) ? rawStatus : "pending",
+    amount: toNumber(order.amount),
+    credits: toNumber(order.credits),
+    duration_months: order.duration_months == null ? null : toNumber(order.duration_months),
+    checkout_url: toOptionalText(order.checkout_url),
+    customer_name: toOptionalText(order.customer_name),
+    customer_email: toOptionalText(order.customer_email),
+    paid_at: toOptionalText(order.paid_at),
+    created_at: toText(order.created_at),
   };
 }
 

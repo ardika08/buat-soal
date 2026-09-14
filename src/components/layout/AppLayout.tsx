@@ -56,6 +56,16 @@ export default function AppLayout() {
                 Riwayat
               </Link>
               <Link
+                to="/transactions"
+                className={`px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === "/transactions"
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                Transaksi
+              </Link>
+              <Link
                 to="/question-bank"
                 className={`px-3 py-2 rounded-lg transition-colors ${
                   location.pathname === "/question-bank"
@@ -71,10 +81,10 @@ export default function AppLayout() {
 
             <div className="flex items-center gap-4">
               {/* Credits Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 shadow-sm transition-transform hover:-translate-y-0.5 cursor-pointer" title="Sisa Kredit Anda">
+              <Link to="/transactions" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 shadow-sm transition-transform hover:-translate-y-0.5" title="Lihat riwayat kredit">
                 <Coins className="w-4 h-4" />
                 <span className="font-semibold text-sm">{user?.credits_balance ?? 0} Kredit</span>
-              </div>
+              </Link>
 
               <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
                 <UserCircle className="w-7 h-7 text-slate-400" />

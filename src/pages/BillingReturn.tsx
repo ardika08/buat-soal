@@ -152,8 +152,8 @@ export default function BillingReturn() {
               Ke Dashboard
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button variant="outline" render={<Link to="/history" />}>
-              Lihat Riwayat Ujian
+            <Button variant="outline" render={<Link to="/transactions" />}>
+              Lihat Riwayat Transaksi
             </Button>
           </div>
         </CardContent>

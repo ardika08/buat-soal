@@ -17,7 +17,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 
 const api = await import(pathToFileURL(join(root, "src", "lib", "apiMappers.ts")).href);
-const { formatUser, normalizeBankQuestion, normalizeExam, normalizeQuestion, payloadFromFormData } = api;
+const {
+  formatUser,
+  normalizeBankQuestion,
+  normalizeCreditTransaction,
+  normalizeExam,
+  normalizePaymentOrder,
+  normalizeQuestion,
+  payloadFromFormData,
+} = api;
 
 // --- Profil pengguna ---
 
@@ -191,6 +199,48 @@ test("normalizeQuestion tidak meneruskan array sebagai objek pilihan", () => {
   const question = normalizeQuestion({ ...QUESTION_ROW, options: ["A", "B"] });
 
   assert.equal(question.options, null);
+});
+
+// --- Billing ---
+
+test("normalizeCreditTransaction memetakan mutasi kredit", () => {
+  const transaction = normalizeCreditTransaction({
+    id: "12", type: "deduction", amount: "-5", description: "Generate soal",
+    reference_type: "exam_session", reference_id: "7", created_at: "2026-09-14T01:00:00Z",
+  });
+  assert.equal(transaction.id, 12);
+  assert.equal(transaction.type, "deduction");
+  assert.equal(transaction.amount, -5);
+  assert.equal(transaction.reference_id, "7");
+});
+
+test("normalizeCreditTransaction memberi default aman", () => {
+  const transaction = normalizeCreditTransaction({ type: "asing", amount: "bukan-angka" });
+  assert.equal(transaction.type, "bonus");
+  assert.equal(transaction.amount, 0);
+  assert.equal(transaction.description, null);
+});
+
+test("normalizePaymentOrder memetakan invoice dan status", () => {
+  const order = normalizePaymentOrder({
+    id: 31, package_id: "topup-custom-100", order_type: "topup", provider: "mayar",
+    provider_order_id: "INV-31", provider_transaction_id: "TRX-31", status: "paid",
+    amount: "20000", credits: "100", duration_months: null, checkout_url: null,
+    customer_name: "Guru", customer_email: "guru@example.com",
+    paid_at: "2026-09-14T02:00:00Z", created_at: "2026-09-14T01:00:00Z",
+  });
+  assert.equal(order.status, "paid");
+  assert.equal(order.amount, 20000);
+  assert.equal(order.credits, 100);
+  assert.equal(order.provider_order_id, "INV-31");
+});
+
+test("normalizePaymentOrder mengubah status asing menjadi pending", () => {
+  const order = normalizePaymentOrder({ status: "unknown", amount: null, credits: undefined });
+  assert.equal(order.status, "pending");
+  assert.equal(order.order_type, "topup");
+  assert.equal(order.amount, 0);
+  assert.equal(order.credits, 0);
 });
 
 // --- Bank soal ---

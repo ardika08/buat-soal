@@ -32,6 +32,10 @@ class ApiError extends Error {
 export type {
   AuthUser,
   BankQuestion,
+  CreditTransaction,
+  CreditTransactionType,
+  PaymentOrder,
+  PaymentStatus,
   ExamFormat,
   Topic,
   DifficultyDistribution,
@@ -43,6 +47,8 @@ export type {
 export {
   formatUser,
   normalizeBankQuestion,
+  normalizeCreditTransaction,
+  normalizePaymentOrder,
   normalizeExam,
   normalizeQuestion,
   payloadFromFormData,
@@ -52,11 +58,15 @@ export {
 import {
   formatUser,
   normalizeBankQuestion,
+  normalizeCreditTransaction,
+  normalizePaymentOrder,
   normalizeExam,
   normalizeQuestion,
   payloadFromFormData,
   type AuthUser,
   type BankQuestion,
+  type CreditTransaction,
+  type PaymentOrder,
   type ExamSession,
   type GenerateExamPayload,
   type Question,
@@ -545,6 +555,34 @@ export const marketingApi = {
 };
 
 export const billingApi = {
+  history: async (): ApiResponse<{ transactions: CreditTransaction[]; orders: PaymentOrder[] }> => {
+    const profile = await currentProfile();
+    const [transactionsResult, ordersResult] = await Promise.all([
+      supabase
+        .from("credit_transactions")
+        .select("id,type,amount,description,reference_type,reference_id,created_at")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("payment_orders")
+        .select("id,package_id,order_type,provider,provider_order_id,provider_transaction_id,status,amount,credits,duration_months,checkout_url,customer_name,customer_email,paid_at,created_at")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ]);
+
+    if (transactionsResult.error) throw new ApiError(transactionsResult.error.message);
+    if (ordersResult.error) throw new ApiError(ordersResult.error.message);
+
+    return {
+      data: {
+        transactions: (transactionsResult.data ?? []).map(normalizeCreditTransaction),
+        orders: (ordersResult.data ?? []).map(normalizePaymentOrder),
+      },
+    };
+  },
+
   packages: async (): ApiResponse<{ packages: BillingPackage[] }> => ({
     data: {
       packages: billingPackages,
