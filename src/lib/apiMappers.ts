@@ -17,6 +17,7 @@ export interface AuthUser {
   subscription_tier: "free" | "premium";
   credits_balance: number;
   subscription_expiry: string | null;
+  has_purchased_credits: boolean;
 }
 
 export interface ExamFormat {
@@ -139,6 +140,7 @@ export function formatUser(profile: Record<string, unknown>): AuthUser {
     subscription_tier: normalizeSubscriptionTier(profile.subscription_tier),
     credits_balance: toNumber(profile.credits_balance),
     subscription_expiry: toOptionalText(profile.subscription_expiry),
+    has_purchased_credits: profile.has_purchased_credits === true,
   };
 }
 

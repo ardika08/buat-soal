@@ -29,6 +29,7 @@ test("formatUser memetakan kolom profil apa adanya", () => {
     subscription_tier: "premium",
     credits_balance: 120,
     subscription_expiry: "2026-12-31T00:00:00.000Z",
+    has_purchased_credits: true,
   });
 
   assert.deepEqual(user, {
@@ -38,6 +39,7 @@ test("formatUser memetakan kolom profil apa adanya", () => {
     subscription_tier: "premium",
     credits_balance: 120,
     subscription_expiry: "2026-12-31T00:00:00.000Z",
+    has_purchased_credits: true,
   });
 });
 
@@ -59,6 +61,12 @@ test("formatUser menjadikan saldo kredit selalu berupa angka", () => {
   assert.equal(formatUser({ id: 1, credits_balance: "250" }).credits_balance, 250);
   assert.equal(formatUser({ id: 1, credits_balance: null }).credits_balance, 0);
   assert.equal(formatUser({ id: 1 }).credits_balance, 0);
+});
+
+test("formatUser hanya menandai riwayat top-up dari boolean eksplisit", () => {
+  assert.equal(formatUser({ id: 1, has_purchased_credits: true }).has_purchased_credits, true);
+  assert.equal(formatUser({ id: 1, has_purchased_credits: false }).has_purchased_credits, false);
+  assert.equal(formatUser({ id: 1 }).has_purchased_credits, false);
 });
 
 test("formatUser membedakan langganan tanpa tanggal kedaluwarsa dari yang punya", () => {

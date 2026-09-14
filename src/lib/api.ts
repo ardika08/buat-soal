@@ -392,7 +392,22 @@ export const billingApi = {
 };
 
 async function currentUser(): Promise<AuthUser> {
-  return formatUser(await currentProfile());
+  const profile = await currentProfile();
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("id")
+    .eq("user_id", profile.id)
+    .eq("type", "topup")
+    .limit(1);
+
+  if (error) {
+    console.warn("Gagal memeriksa riwayat top-up:", error.message);
+  }
+
+  return formatUser({
+    ...profile,
+    has_purchased_credits: !error && (data?.length ?? 0) > 0,
+  });
 }
 
 async function currentProfile() {

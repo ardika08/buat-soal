@@ -125,13 +125,13 @@ export default function Dashboard() {
             <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
               user?.subscription_tier === "premium"
                 ? "bg-purple-200 text-purple-800"
-                : (user?.credits_balance ?? 0) > 10
+                : user?.has_purchased_credits
                   ? "bg-emerald-200 text-emerald-800"
                   : "bg-indigo-200 text-indigo-800"
             }`}>
               {user?.subscription_tier === "premium"
                 ? "PREMIUM"
-                : (user?.credits_balance ?? 0) > 10
+                : user?.has_purchased_credits
                   ? "AKTIF"
                   : "FREE"}
             </div>
@@ -140,7 +140,7 @@ export default function Dashboard() {
             <div className="text-lg font-bold text-slate-900">
               {user?.subscription_tier === "premium"
                 ? "Premium Aktif"
-                : (user?.credits_balance ?? 0) > 10
+                : user?.has_purchased_credits
                   ? "Kredit Top-Up"
                   : "Paket Dasar"}
             </div>
