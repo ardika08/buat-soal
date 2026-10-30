@@ -22,6 +22,20 @@ Buka Supabase Dashboard -> SQL Editor, lalu jalankan **berurutan**:
 2. supabase/migrations/20260912000000_p0_security_hotfix.sql
 3. supabase/migrations/20260912010000_p1_billing_lifecycle.sql
 4. supabase/migrations/20260913000000_create_exam_transaction_function.sql
+5. supabase/migrations/20260914000000_question_editor.sql
+6. supabase/migrations/20260914010000_question_bank.sql
+7. supabase/migrations/20260915000000_emodul_schema.sql
+8. supabase/migrations/20260915010000_emodul_credit_function.sql
+9. supabase/migrations/20260915020000_emodul_save_function.sql
+10. supabase/migrations/20260915030000_emodul_draft_function.sql
+11. supabase/migrations/20260915040000_emodul_autosave_function.sql
+12. supabase/migrations/20260915050000_emodul_structure_manage.sql
+13. supabase/migrations/20260915060000_emodul_storage_refine.sql
+14. supabase/migrations/20260915070000_emodul_settings.sql
+15. supabase/migrations/20260915080000_emodul_upgrade_intent.sql
+16. supabase/migrations/20260915090000_emodul_access_status.sql
+17. supabase/migrations/20260915100000_subscription_packages.sql
+18. supabase/migrations/20260915110000_subscription_packages_seed.sql
 ```
 
 Jalankan setiap migration **hanya setelah** migration sebelumnya selesai tanpa error.
@@ -112,6 +126,23 @@ Deploy functions:
 
 ```bash
 supabase functions deploy exam-generate
+supabase functions deploy emodul-generate
+supabase functions deploy emodul-draft
+supabase functions deploy emodul-detail
+supabase functions deploy emodul-autosave
+supabase functions deploy emodul-manage
+supabase functions deploy emodul-regenerate
+supabase functions deploy emodul-structure-check
+supabase functions deploy emodul-export
+supabase functions deploy emodul-settings
+supabase functions deploy emodul-entitlement
+supabase functions deploy emodul-plans
+supabase functions deploy emodul-upgrade-intent
+supabase functions deploy account-summary
+supabase functions deploy recent-drafts
+supabase functions deploy start-draft
+supabase functions deploy session-guard
+supabase functions deploy sign-out
 supabase functions deploy billing-checkout
 supabase functions deploy billing-payment-status
 supabase functions deploy billing-webhook --no-verify-jwt

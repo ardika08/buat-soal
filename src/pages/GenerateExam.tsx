@@ -30,15 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { examsApi, type GenerateExamPayload } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-
-const SUBJECT_OPTIONS_BY_FASE: Record<string, string[]> = {
-  "Fase A": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "SBDP", "Seni Rupa", "Muatan Lokal"],
-  "Fase B": ["Bahasa Indonesia", "Matematika", "IPAS", "PAI", "Bahasa Inggris", "PJOK", "PKN", "SBDP", "Seni Rupa"],
-  "Fase C": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "SBDP", "IPAS", "PJOK", "PKN"],
-  "Fase D": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "Seni Budaya", "Informatika", "Muatan Lokal"],
-  "Fase E": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "IPA", "IPS", "Informatika", "Bahasa & Budaya", "Seni Budaya"],
-  "Fase F": ["Bahasa Indonesia", "Matematika", "PAI", "Bahasa Inggris", "PJOK", "PKN", "IPA", "IPS", "Informatika", "Bahasa & Budaya", "Seni Budaya"],
-};
+import { KELAS_OPTIONS_BY_FASE, SUBJECT_OPTIONS_BY_FASE } from "@/lib/curriculum";
 
 const COGNITIVE_LEVELS = [
   "C1 - Mengingat",
@@ -176,22 +168,13 @@ export default function GenerateExam() {
     }
   };
 
-  const kelasOptions: Record<string, number[]> = {
-    "Fase A": [1, 2],
-    "Fase B": [3, 4],
-    "Fase C": [5, 6],
-    "Fase D": [7, 8, 9],
-    "Fase E": [10],
-    "Fase F": [11, 12],
-  };
-
   const handleFaseChange = (fase: string | null) => {
     if (!fase) {
       return;
     }
 
     setSelectedFase(fase);
-    setSelectedKelas(`Kelas ${kelasOptions[fase][0]}`);
+    setSelectedKelas(`Kelas ${KELAS_OPTIONS_BY_FASE[fase][0]}`);
     setSelectedSubjectOption(SUBJECT_OPTIONS_BY_FASE[fase][0]);
     setManualSubject("");
   };
@@ -597,7 +580,7 @@ export default function GenerateExam() {
                     <SelectValue placeholder="Pilih Kelas" />
                   </SelectTrigger>
                   <SelectContent>
-                    {kelasOptions[selectedFase].map((cls) => (
+                    {KELAS_OPTIONS_BY_FASE[selectedFase].map((cls) => (
                       <SelectItem key={cls} value={`Kelas ${cls}`}>
                         Kelas {cls}
                       </SelectItem>

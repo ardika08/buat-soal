@@ -12,7 +12,9 @@ function source(path) {
 }
 
 test("Fase D menyediakan kelas 7, 8, dan 9", () => {
-  assert.match(source("src/pages/GenerateExam.tsx"), /"Fase D": \[7, 8, 9\]/);
+  // Pemetaan fase/kelas dipusatkan di src/lib/curriculum.ts supaya bisa dipakai
+  // bersama oleh wizard Soal dan wizard E-Modul.
+  assert.match(source("src/lib/curriculum.ts"), /"Fase D": \[7, 8, 9\]/);
 });
 
 test("widget bukti pembelian tidak memiliki daftar transaksi fiktif", () => {

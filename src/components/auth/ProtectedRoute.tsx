@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import { LOGIN_PATH } from "@/lib/routes";
 
 export default function ProtectedRoute() {
   const { user, isLoading } = useAuth();
@@ -12,5 +13,5 @@ export default function ProtectedRoute() {
     );
   }
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  return user ? <Outlet /> : <Navigate to={LOGIN_PATH} replace />;
 }

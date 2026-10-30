@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { exportExamDocx, exportExamPdf } from "@/lib/exportExam";
 import { exportKisiKisiDocx } from "@/lib/exportKisiKisi";
 import { analyzeExamQuality, type QualityDistributionItem } from "@/lib/examQuality";
+import { HOME_PATH } from "@/lib/routes";
 
 interface ReviewState {
   examId: number;
@@ -1021,7 +1022,7 @@ export default function ReviewExam() {
             </div>
           </div>
 
-          <Link to="/">
+          <Link to={HOME_PATH}>
             <Button variant="ghost" className="w-full text-slate-500 hover:text-slate-800">
               <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Dashboard
             </Button>

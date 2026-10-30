@@ -5,6 +5,7 @@ import DeleteExamDialog from "@/components/exams/DeleteExamDialog";
 import ExamHistoryItem from "@/components/exams/ExamHistoryItem";
 import { Button } from "@/components/ui/button";
 import { examsApi, type ExamSession, type PaginatedExams } from "@/lib/api";
+import { HOME_PATH } from "@/lib/routes";
 
 export default function ExamHistory() {
   const [page, setPage] = useState(1);
@@ -82,7 +83,7 @@ export default function ExamHistory() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link to="/">
+          <Link to={HOME_PATH}>
             <Button variant="ghost" className="mb-2 text-slate-500 hover:text-slate-900">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali ke Dashboard

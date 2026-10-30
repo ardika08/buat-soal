@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { BrainCircuit, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { BASE_URL } from "@/lib/api";
+import { HOME_PATH } from "@/lib/routes";
 
 declare global {
   interface Window {
@@ -58,7 +59,7 @@ export default function Login() {
           try {
             setError(null);
             await loginWithGoogle(response.credential);
-            navigate("/", { replace: true });
+            navigate(HOME_PATH, { replace: true });
           } catch (err: unknown) {
             const apiError = err as {
               response?: {
@@ -103,7 +104,7 @@ export default function Login() {
   }, [loginWithGoogle, navigate]);
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={HOME_PATH} replace />;
   }
 
   return (

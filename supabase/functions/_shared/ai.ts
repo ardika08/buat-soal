@@ -86,7 +86,7 @@ export async function generateCapaianPembelajaran(
     }
 
     return capaian.map((item) => typeof item === "string" ? item.trim() : "");
-  } catch (_error) {
+  } catch {
     return fallback;
   }
 }

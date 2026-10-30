@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { billingApi, type BillingPayment } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { paymentInvoiceNumber } from "@/lib/paymentIdentifiers";
+import { HOME_PATH } from "@/lib/routes";
 import {
   describeOutcome,
   resolveOrderId,
@@ -147,7 +148,7 @@ export default function BillingReturn() {
 
           <div className="flex flex-col justify-center gap-3 sm:flex-row">
             <Button
-              render={<Link to="/" />}
+              render={<Link to={HOME_PATH} />}
               className="bg-indigo-600 text-white hover:bg-indigo-700"
             >
               Ke Dashboard

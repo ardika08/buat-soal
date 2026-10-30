@@ -2,12 +2,21 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./lib/auth";
+import { EMODUL_ACCESS_PATH, EMODUL_NEW_PATH, EMODUL_PATH, EMODUL_PREVIEW_PATH, HOME_PATH, LOGIN_PATH, PLANS_PATH, PROFILE_PATH } from "./lib/routes";
 import { isSupabaseConfigured } from "./lib/supabase";
 import Dashboard from "./pages/Dashboard";
 import BillingReturn from "./pages/BillingReturn";
+import EModulEditor from "./pages/EModulEditor";
+import EModulGenerator from "./pages/EModulGenerator";
+import EModulLibrary from "./pages/EModulLibrary";
+import EModulPreview from "./pages/EModulPreview";
+import EbookAccess from "./pages/EbookAccess";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 import ExamHistory from "./pages/ExamHistory";
 import GenerateExam from "./pages/GenerateExam";
 import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 import ReviewExam from "./pages/ReviewExam";
 import QuestionBank from "./pages/QuestionBank";
 import TransactionHistory from "./pages/TransactionHistory";
@@ -41,19 +50,27 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id`}
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path={LOGIN_PATH} element={<Login />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
+              <Route index element={<Navigate to={HOME_PATH} replace />} />
+              <Route path={HOME_PATH} element={<Dashboard />} />
               <Route path="/history" element={<ExamHistory />} />
               <Route path="/question-bank" element={<QuestionBank />} />
               <Route path="/transactions" element={<TransactionHistory />} />
+              <Route path={PROFILE_PATH} element={<Profile />} />
               <Route path="generate" element={<GenerateExam />} />
               <Route path="review" element={<ReviewExam />} />
               <Route path="billing/return" element={<BillingReturn />} />
+              <Route path={EMODUL_PATH} element={<EModulLibrary />} />
+              <Route path={EMODUL_NEW_PATH} element={<EModulGenerator />} />
+              <Route path={EMODUL_ACCESS_PATH} element={<EbookAccess />} />
+              <Route path={PLANS_PATH} element={<SubscriptionPlans />} />
+              <Route path={EMODUL_PREVIEW_PATH} element={<EModulPreview />} />
+              <Route path={`${EMODUL_PATH}/:id`} element={<EModulEditor />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
