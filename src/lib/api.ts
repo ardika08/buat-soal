@@ -1,31 +1,13 @@
+import { ApiError, invokeFunction } from "@/lib/invoke";
 import { supabase, SUPABASE_URL } from "@/lib/supabase";
 
 export const BASE_URL = SUPABASE_URL ?? "Supabase belum dikonfigurasi";
 
 type ApiResponse<T> = Promise<{ data: T }>;
 
-class ApiError extends Error {
-  response?: {
-    status: number;
-    data: {
-      message?: string;
-      error?: string;
-      errors?: Record<string, string[]>;
-      [key: string]: unknown;
-    };
-  };
-
-  constructor(message: string, status = 500, data: Record<string, unknown> = {}) {
-    super(message);
-    this.response = {
-      status,
-      data: {
-        message,
-        ...data,
-      },
-    };
-  }
-}
+// Helper dipakai bersama modul lain (e-modul, proyek). Di-ekspor ulang di sini
+// supaya seluruh kode yang sudah ada tetap mengimpor dari `@/lib/api`.
+export { ApiError, invokeFunction } from "@/lib/invoke";
 
 // Tipe dan pemetaan data tinggal di ./apiMappers agar bisa diuji tanpa browser.
 // Di-ekspor ulang dari sini supaya seluruh kode yang sudah ada tetap jalan.
@@ -656,24 +638,4 @@ async function currentProfile() {
   }
 
   throw new ApiError("Profil pengguna belum tersedia di Supabase.", 404);
-}
-
-/** Melempar ApiError berisi pesan asli dari Edge Function, bukan pesan generik. */
-async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, {
-    body: body as Record<string, unknown>,
-  });
-
-  if (error) {
-    const maybeResponse = (error as { context?: Response }).context;
-    if (maybeResponse instanceof Response) {
-      const status = maybeResponse.status;
-      const payload = await maybeResponse.json().catch(() => ({ message: error.message }));
-      throw new ApiError(payload.message ?? error.message, status, payload);
-    }
-
-    throw new ApiError(error.message);
-  }
-
-  return data as T;
 }
