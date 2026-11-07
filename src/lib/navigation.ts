@@ -29,13 +29,14 @@ export const sidebarGroups: SidebarGroup[] = [
     label: "Buat Materi",
     items: [
       { label: "Soal", to: "/generate", icon: FileText, description: "Susun naskah ujian dengan AI" },
-      { label: "E-book", to: EMODUL_NEW_PATH, icon: BookOpen, activeMatch: EMODUL_PATH, description: "Susun e-modul & bahan ajar dengan AI" },
+      { label: "E-book", to: EMODUL_NEW_PATH, icon: BookOpen, description: "Susun e-modul & bahan ajar dengan AI" },
     ],
   },
   {
     label: "Pustaka",
     items: [
       { label: "Bank Soal", to: "/question-bank", icon: Library, description: "Soal tersimpan & siap dipakai ulang" },
+      { label: "Riwayat E-Book", to: EMODUL_PATH, icon: BookOpen, description: "E-book dan e-modul yang sudah dibuat" },
       { label: "Riwayat Ujian", to: "/history", icon: History, description: "Paket ujian yang pernah dibuat" },
     ],
   },
