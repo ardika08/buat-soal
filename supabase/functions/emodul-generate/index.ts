@@ -155,11 +155,16 @@ Deno.serve(async (request) => {
       }, 402);
     }
 
-    const status = message.includes("API") ? 503 : 422;
+    const providerFailure = /API|GEMINI_API_KEY|OPENAI_API_KEY|fetch failed|timed out|network/i.test(message);
+    const status = providerFailure ? 503 : 422;
+
+    if (!providerFailure) {
+      console.error("[emodul-generate] Output AI tidak sesuai kontrak:", message);
+    }
 
     return jsonResponse({
-      error: status === 503 ? "ai_provider_failed" : "ai_invalid_output",
-      message,
+      error: providerFailure ? "ai_provider_failed" : "ai_invalid_output",
+      message: providerFailure ? "Layanan AI sedang bermasalah. Coba lagi beberapa saat." : message,
     }, status);
   }
 });

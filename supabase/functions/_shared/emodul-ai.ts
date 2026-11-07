@@ -46,6 +46,7 @@ export async function generateEModul(
       return output;
     } catch (error) {
       lastError = error;
+      console.error(`[emodul-ai] Percobaan ${attempt + 1} gagal:`, error);
     }
   }
 
