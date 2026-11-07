@@ -408,7 +408,7 @@ export default function EModulGenerator() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="emodul-subchapters">Subbab per Bab</Label>
+                <Label htmlFor="emodul-subchapters">Jumlah submateri per BAB</Label>
                 <Input
                   id="emodul-subchapters"
                   type="number"
@@ -433,7 +433,7 @@ export default function EModulGenerator() {
                 className="w-full accent-emerald-600"
               />
               <p className="text-xs text-slate-500">
-                Struktur mencakup {config.topics.length} BAB, masing-masing dengan {config.subChapters} bagian pengembangan.
+                Struktur mencakup {config.topics.length} BAB, masing-masing dengan tepat {config.subChapters} submateri pengembangan.
               </p>
             </div>
 
@@ -474,7 +474,7 @@ export default function EModulGenerator() {
                   <dt className="text-slate-500">Struktur</dt>
                   <dd className="font-medium text-slate-800">
                     {config.topics.length} materi = {config.topics.length} BAB
-                    <span className="text-slate-500"> · {config.subChapters} bagian per BAB</span>
+                    <span className="text-slate-500"> · {config.subChapters} submateri bernomor per BAB</span>
                   </dd>
                 </div>
 

@@ -110,6 +110,18 @@ test("normalisasi merapikan teks, membuang bagian kosong, dan menomori ulang", (
   assert.equal(output.chapters[0].sections[0].content, "Uraian materi.");
 });
 
+test("judul Pendalaman Materi dinormalisasi sesuai format dan topik BAB", () => {
+  const output = normalizeEModulOutput({
+    chapters: [{
+      title: "Bab 1: Ekosistem",
+      sections: [
+        { kind: "materi", title: "Pendalaman Materi 1.1: Mengenal Ekosistem", content: "Uraian." },
+      ],
+    }],
+  }, basePayload);
+  assert.equal(output.chapters[0].sections[0].title, "A. Pendalaman Materi Ekosistem");
+});
+
 test("judul kosong memakai topik pertama sebagai pengganti", () => {
   const output = normalizeEModulOutput(
     {
@@ -152,6 +164,15 @@ test("jenis bagian di luar materi/latihan ditolak", () => {
   );
 });
 
+test("prompt mengunci jumlah submateri dan format judul pendalaman", () => {
+  const prompt = buildEModulPrompt(basePayload);
+
+  assert.match(prompt, /jumlah_submateri_per_bab":2/);
+  assert.match(prompt, /A\. Pendalaman Materi/);
+  assert.match(prompt, /1\.1/);
+  assert.match(prompt, /1\.2/);
+});
+
 test("prompt memuat jenjang, jumlah bab, dan topik", () => {
   const prompt = buildEModulPrompt(basePayload);
 
@@ -192,8 +213,10 @@ test("output lengkap lolos pemeriksaan kelengkapan", () => {
     chapters: [chapterOutput(1, [
       { ...sectionOutput(1, "materi"), title: "Pertanyaan Pemantik" },
       { ...sectionOutput(2, "materi"), title: "Peta Konsep" },
-      { ...sectionOutput(3, "materi"), title: "Pendalaman Materi" },
-      { ...sectionOutput(4, "latihan"), title: "Uji Capaian Pembelajaran" },
+      { ...sectionOutput(3, "materi"), title: "A. Pendalaman Materi Ekosistem" },
+      { ...sectionOutput(4, "materi"), title: "1.1 Komponen Ekosistem" },
+      { ...sectionOutput(5, "materi"), title: "1.2 Interaksi Ekosistem" },
+      { ...sectionOutput(6, "latihan"), title: "Uji Capaian Pembelajaran" },
     ])],
   };
   assert.deepEqual(validateEModulCompleteness(output, basePayload), { ok: true, reason: null });
@@ -214,12 +237,39 @@ test("bagian wajib tiap bab harus tersedia", () => {
     chapters: [chapterOutput(1, [
       { ...sectionOutput(1, "materi"), title: "Pertanyaan Pemantik" },
       { ...sectionOutput(2, "materi"), title: "Peta Konsep" },
-      { ...sectionOutput(3, "materi"), title: "Pendalaman Materi" },
+      { ...sectionOutput(3, "materi"), title: "A. Pendalaman Materi Ekosistem" },
+      { ...sectionOutput(4, "materi"), title: "1.1 Komponen Ekosistem" },
+      { ...sectionOutput(5, "materi"), title: "1.2 Interaksi Ekosistem" },
     ])],
   };
   const check = validateEModulCompleteness(output, basePayload);
   assert.equal(check.ok, false);
   assert.match(check.reason, /Uji Capaian Pembelajaran/i);
+});
+
+test("jumlah submateri harus tepat dan judul induk tidak dihitung", () => {
+  const baseSections = [
+    { ...sectionOutput(1, "materi"), title: "Pertanyaan Pemantik" },
+    { ...sectionOutput(2, "materi"), title: "Peta Konsep" },
+    { ...sectionOutput(3, "materi"), title: "A. Pendalaman Materi Ekosistem" },
+    { ...sectionOutput(4, "materi"), title: "1.1 Komponen Ekosistem" },
+    { ...sectionOutput(5, "materi"), title: "1.2 Interaksi Ekosistem" },
+    { ...sectionOutput(6, "latihan"), title: "Uji Capaian Pembelajaran" },
+  ];
+  const valid = { title: "Ekosistem", chapters: [chapterOutput(1, baseSections)] };
+  assert.deepEqual(validateEModulCompleteness(valid, basePayload), { ok: true, reason: null });
+
+  const tooFew = structuredClone(valid);
+  tooFew.chapters[0].sections.splice(4, 1);
+  assert.match(validateEModulCompleteness(tooFew, basePayload).reason, /tepat 2 submateri/i);
+
+  const tooMany = structuredClone(valid);
+  tooMany.chapters[0].sections.splice(5, 0, { ...sectionOutput(6, "materi"), title: "1.3 Keanekaragaman" });
+  assert.match(validateEModulCompleteness(tooMany, basePayload).reason, /tepat 2 submateri/i);
+
+  const numberedHeading = structuredClone(valid);
+  numberedHeading.chapters[0].sections[2].title = "1.1 Pendalaman Materi Ekosistem";
+  assert.match(validateEModulCompleteness(numberedHeading, basePayload).reason, /judul induk/i);
 });
 
 // --- Regenerasi satu bagian ---

@@ -111,8 +111,9 @@ export function buildEModulPrompt(payload: GenerateEModulPayload): string {
     instruction:
       "Susun e-book bahan ajar Bahasa Indonesia untuk Kurikulum Merdeka dengan pendekatan pembelajaran mendalam (deep learning: berkesadaran, bermakna, menggembirakan). " +
       "Buat tepat satu BAB untuk setiap materi input, urutannya harus sama. Jangan menggabungkan atau menambah BAB. " +
-      "Setiap BAB wajib memiliki bagian berurutan: Pertanyaan Pemantik, Peta Konsep (uraikan sebagai teks/relasi konsep), Pendalaman Materi dengan subjudul bernomor dan uraian mendalam, aktivitas/konteks nyata yang sesuai, lalu Uji Capaian Pembelajaran berisi soal dan kunci/pedoman jawaban. Simpan Pertanyaan Pemantik, Peta Konsep, dan Pendalaman Materi sebagai bagian kind materi; simpan Uji Capaian Pembelajaran sebagai bagian kind latihan. " +
-      "Sesuaikan subbagian dengan karakter mapel/topik; contoh nama bagian tidak boleh dipaksakan bila tidak relevan. " +
+      "Setiap BAB wajib memiliki bagian berurutan: Pertanyaan Pemantik, Peta Konsep (uraikan sebagai teks/relasi konsep), satu bagian induk Pendalaman Materi berjudul tepat 'A. Pendalaman Materi <nama topik>', tepat sebanyak submateri sesuai target, lalu Uji Capaian Pembelajaran berisi soal dan kunci/pedoman jawaban. " +
+      "Judul submateri harus bernomor 1.1, 1.2, dan seterusnya; jangan menambah atau mengurangi submateri. Nomor 1.1 dan seterusnya hanya untuk submateri, bukan judul bagian induk. Simpan semua bagian tersebut sebagai bagian kind materi, kecuali Uji Capaian Pembelajaran sebagai kind latihan. " +
+      "Sesuaikan nama dan isi submateri dengan karakter mapel/topik, tetapi jumlahnya harus tepat sesuai target. " +
       "Gunakan tujuan pembelajaran materi terkait sebagai acuan isi BAB tersebut. Pastikan akurat, runtut, sesuai usia, inklusif, dan tidak mengarang CP resmi. " +
       "Bagian sampul dan daftar isi dibuat oleh aplikasi; jangan keluarkan sebagai BAB. Kembalikan hanya JSON valid sesuai schema.",
     fase: payload.fase,
@@ -121,7 +122,8 @@ export function buildEModulPrompt(payload: GenerateEModulPayload): string {
     semester: payload.semester,
     jumlah_bab: payload.topics.length,
     aturan_bab: "Satu topik/materi input = tepat satu bab, mengikuti urutan input.",
-    subbab_per_bab: "Buat subbagian sesuai kebutuhan isi dan kedalaman materi; bukan target jumlah tetap.",
+    jumlah_submateri_per_bab: payload.sub_chapters,
+    aturan_submateri: `Setiap BAB harus memiliki tepat ${payload.sub_chapters} submateri di dalam Pendalaman Materi. Judul induk harus diawali 'A. Pendalaman Materi' dan tidak dihitung sebagai submateri. Nomori submateri 1.1 sampai 1.${payload.sub_chapters}.`,
     porsi_latihan_persen: payload.exercise_share,
     latihan_per_bab: exercisesPerChapter(payload),
     topics: topicList,
@@ -131,8 +133,12 @@ export function buildEModulPrompt(payload: GenerateEModulPayload): string {
         {
           title: "Bab 1: Judul bab",
           sections: [
-            { kind: "materi", title: "Subbab 1.1: Judul subbab", content: "Uraian materi." },
-            { kind: "latihan", title: "Latihan 1.1", content: "Soal/aktivitas latihan." },
+            { kind: "materi", title: "Pertanyaan Pemantik", content: "Pertanyaan kontekstual." },
+            { kind: "materi", title: "Peta Konsep", content: "Relasi konsep." },
+            { kind: "materi", title: "A. Pendalaman Materi Ekosistem", content: "Pengantar pendalaman." },
+            { kind: "materi", title: "1.1 Komponen Ekosistem", content: "Uraian submateri." },
+            { kind: "materi", title: "1.2 Interaksi Ekosistem", content: "Uraian submateri." },
+            { kind: "latihan", title: "Uji Capaian Pembelajaran", content: "Soal dan pedoman jawaban." },
           ],
         },
       ],
@@ -178,9 +184,7 @@ export function emodulSchema() {
 /**
  * Normalisasi + validasi dasar keluaran AI.
  *
- * Merapikan teks, membuang bagian kosong, dan menomori ulang bab/bagian. Aturan
- * kelengkapan yang lebih ketat (jumlah bab/subbab sesuai target, kewajiban
- * latihan) beserta pengembalian kredit ditangani pada task berikutnya.
+ * Merapikan teks, membuang bagian kosong, dan menomori ulang bab/bagian.
  */
 export function normalizeEModulOutput(raw: unknown, payload: GenerateEModulPayload): EModulOutput {
   const source = raw as { title?: unknown; chapters?: unknown } | null;
@@ -214,7 +218,8 @@ export function normalizeEModulOutput(raw: unknown, payload: GenerateEModulPaylo
         throw new Error(`Jenis bagian pada bab ${chapterIndex + 1} tidak dikenal.`);
       }
 
-      const sectionTitle = text(section?.title);
+      const rawSectionTitle = text(section?.title);
+      const sectionTitle = normalizeSectionTitle(rawSectionTitle, payload, chapterIndex);
       const content = text(section?.content);
 
       // Bagian tanpa judul/isi dibuang; kelengkapan divalidasi terpisah.
@@ -245,6 +250,12 @@ export function normalizeEModulOutput(raw: unknown, payload: GenerateEModulPaylo
     title: text(source.title) || text(payload.topics[0]?.topik) || "E-Modul Baru",
     chapters,
   };
+}
+
+function normalizeSectionTitle(title: string, payload: GenerateEModulPayload, chapterIndex: number): string {
+  if (!/^\s*(?:[a-z]\.\s*)?pendalaman materi\b/i.test(title)) return title;
+  const topic = payload.topics[chapterIndex]?.topik?.trim();
+  return topic ? `A. Pendalaman Materi ${topic}` : `A. Pendalaman Materi`;
 }
 
 function text(value: unknown): string {
@@ -341,12 +352,22 @@ export function validateEModulCompleteness(
     const exerciseTitles = chapter.sections
       .filter((section) => section.kind === "latihan")
       .map((section) => section.title.toLocaleLowerCase("id"));
-    const requiredMaterialParts = ["pertanyaan pemantik", "peta konsep", "pendalaman materi"];
+    const requiredMaterialParts = ["pertanyaan pemantik", "peta konsep"];
 
     for (const required of requiredMaterialParts) {
       if (!materialTitles.some((title) => title.includes(required))) {
         return { ok: false, reason: `"${chapter.title}" belum memiliki bagian ${required}.` };
       }
+    }
+
+    const depthTitles = materialTitles.filter((title) => title.includes("pendalaman materi"));
+    if (depthTitles.length !== 1 || !/^a\.\s*pendalaman materi\b/.test(depthTitles[0] ?? "")) {
+      return { ok: false, reason: `"${chapter.title}" harus memiliki satu judul induk "A. Pendalaman Materi <nama topik>".` };
+    }
+
+    const subsectionCount = materialTitles.filter((title) => /^\d+\.\d+\s+\S/.test(title)).length;
+    if (subsectionCount !== payload.sub_chapters) {
+      return { ok: false, reason: `"${chapter.title}" harus memiliki tepat ${payload.sub_chapters} submateri bernomor; dihasilkan ${subsectionCount}.` };
     }
 
     if (!exerciseTitles.some((title) => title.includes("uji capaian pembelajaran"))) {
