@@ -146,7 +146,13 @@ Deno.serve(async (request) => {
       throw error;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Generate e-modul gagal.";
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error) || String(error);
+    const requestId = crypto.randomUUID();
+    console.error(`[emodul-generate] request ${requestId} gagal:`, error);
 
     if (message.includes("insufficient_credits")) {
       return jsonResponse({
@@ -165,6 +171,7 @@ Deno.serve(async (request) => {
     return jsonResponse({
       error: providerFailure ? "ai_provider_failed" : "ai_invalid_output",
       message: providerFailure ? "Layanan AI sedang bermasalah. Coba lagi beberapa saat." : message,
+      request_id: requestId,
     }, status);
   }
 });
