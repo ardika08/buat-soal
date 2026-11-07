@@ -249,6 +249,11 @@ async function buildDocx(model: EModulDocumentModel): Promise<string> {
   );
 
   for (const block of model.blocks) {
+    if (block.kind === "pagebreak") {
+      children.push(new Paragraph({ pageBreakBefore: true, text: "" }));
+      continue;
+    }
+
     if (block.kind === "heading") {
       children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_1 }));
       continue;
@@ -392,7 +397,10 @@ async function buildPdf(model: EModulDocumentModel): Promise<string> {
 
   // Blok isi
   for (const block of model.blocks) {
-    if (block.kind === "heading") {
+    if (block.kind === "pagebreak") {
+      page = pdf.addPage([pageWidth, pageHeight]);
+      y = pageHeight - margin;
+    } else if (block.kind === "heading") {
       write(block.text, 15, bold, 7);
     } else if (block.kind === "subheading") {
       write(block.text, 12, bold, 6);

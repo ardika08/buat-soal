@@ -55,7 +55,6 @@ interface EModulConfig {
   subject: string;
   manualSubject: string;
   semester: string;
-  chapters: number;
   subChapters: number;
   exerciseShare: number;
 }
@@ -67,15 +66,13 @@ const INITIAL_CONFIG: EModulConfig = {
   subject: SUBJECT_OPTIONS_BY_FASE["Fase A"][0],
   manualSubject: "",
   semester: "Ganjil",
-  chapters: 4,
   subChapters: 2,
   exerciseShare: 30,
 };
 
 /**
- * Estimasi biaya e-modul di klien: 1 kredit per subbab.
- * Server menegakkan aturan yang sama (`EMODUL_CREDIT_PER_SUBBAB`); estimasi di
- * sini hanya untuk ditampilkan sebelum generate.
+ * Estimasi biaya e-modul di klien: 1 kredit per bagian pengembangan.
+ * Server menegakkan aturan yang sama; estimasi ini hanya untuk tampilan.
  */
 const EMODUL_COST_PER_SUBBAB = 1;
 
@@ -112,7 +109,7 @@ export default function EModulGenerator() {
   const effectiveSubject = config.manualSubject.trim() || config.subject;
 
   const creditsBalance = user?.credits_balance ?? 0;
-  const estimatedCost = config.chapters * config.subChapters * EMODUL_COST_PER_SUBBAB;
+  const estimatedCost = config.topics.length * config.subChapters * EMODUL_COST_PER_SUBBAB;
   const isInsufficientCredits = estimatedCost > creditsBalance;
 
   const addTopic = () => update("topics", [...config.topics, { topik: "", capaian: "" }]);
@@ -179,7 +176,7 @@ export default function EModulGenerator() {
         kelas: config.kelas,
         subject: effectiveSubject,
         semester: config.semester,
-        chapters: config.chapters,
+        chapters: config.topics.length,
         subChapters: config.subChapters,
         exerciseShare: config.exerciseShare,
       });
@@ -405,16 +402,9 @@ export default function EModulGenerator() {
             <h2 className="border-b pb-4 text-xl font-bold">Struktur Modul</h2>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="emodul-chapters">Jumlah Bab</Label>
-                <Input
-                  id="emodul-chapters"
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={config.chapters}
-                  onChange={(event) => update("chapters", Math.max(1, Math.min(12, Number(event.target.value) || 1)))}
-                />
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+                <p className="font-semibold">Satu materi menjadi satu BAB</p>
+                <p className="mt-1">Jumlah BAB otomatis mengikuti {config.topics.length} materi yang Anda masukkan. Setiap BAB memuat pertanyaan pemantik, peta konsep, pendalaman materi, aktivitas, dan uji capaian pembelajaran.</p>
               </div>
 
               <div className="space-y-2">
@@ -443,7 +433,7 @@ export default function EModulGenerator() {
                 className="w-full accent-emerald-600"
               />
               <p className="text-xs text-slate-500">
-                Sisanya dipakai untuk uraian materi. Total: {config.chapters} bab × {config.subChapters} subbab.
+                Struktur mencakup {config.topics.length} BAB, masing-masing dengan {config.subChapters} bagian pengembangan.
               </p>
             </div>
 
@@ -483,8 +473,8 @@ export default function EModulGenerator() {
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-500">Struktur</dt>
                   <dd className="font-medium text-slate-800">
-                    {config.chapters} bab × {config.subChapters} subbab
-                    <span className="text-slate-500"> ({config.chapters * config.subChapters} subbab)</span>
+                    {config.topics.length} materi = {config.topics.length} BAB
+                    <span className="text-slate-500"> · {config.subChapters} bagian per BAB</span>
                   </dd>
                 </div>
 
@@ -514,7 +504,7 @@ export default function EModulGenerator() {
 
               <p className="text-xs text-slate-500">
                 Periksa kembali ringkasan di atas sebelum membuat e-modul. Estimasi biaya
-                memakai 1 kredit per subbab (aturan final ditetapkan server).
+                memakai 1 kredit per bagian pengembangan.
               </p>
             </div>
 

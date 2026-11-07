@@ -35,13 +35,18 @@ const basePayload = {
   kelas: "Kelas 7",
   subject: "Ilmu Pengetahuan Alam",
   semester: "Ganjil",
-  chapters: 3,
+  chapters: 1,
   sub_chapters: 2,
   exercise_share: 50,
 };
 
 test("payload lengkap lolos validasi", () => {
   assert.equal(validateGeneratePayload(basePayload), null);
+});
+
+test("jumlah bab wajib sama dengan jumlah materi dan maksimal 12", () => {
+  assert.match(validateGeneratePayload({ ...basePayload, chapters: 2 }), /sama dengan jumlah materi/i);
+  assert.match(validateGeneratePayload({ ...basePayload, topics: Array(13).fill({ topik: "T", capaian: "C" }), chapters: 13 }), /maksimal 12/i);
 });
 
 test("topik/capaian wajib diisi", () => {
@@ -65,8 +70,8 @@ test("jumlah bab/subbab dan porsi latihan dibatasi", () => {
 });
 
 test("biaya kredit = bab x subbab, minimal 1", () => {
-  assert.equal(emodulCreditCost(basePayload), 6);
-  assert.equal(emodulCreditCost({ ...basePayload, chapters: 1, sub_chapters: 1 }), 1);
+  assert.equal(emodulCreditCost(basePayload), 2);
+  assert.equal(emodulCreditCost({ ...basePayload, sub_chapters: 1 }), 1);
 });
 
 test("perkiraan latihan per bab mengikuti porsi", () => {
@@ -182,10 +187,16 @@ function validOutput() {
 }
 
 test("output lengkap lolos pemeriksaan kelengkapan", () => {
-  assert.deepEqual(validateEModulCompleteness(validOutput(), basePayload), {
-    ok: true,
-    reason: null,
-  });
+  const output = {
+    title: "Ekosistem",
+    chapters: [chapterOutput(1, [
+      { ...sectionOutput(1, "materi"), title: "Pertanyaan Pemantik" },
+      { ...sectionOutput(2, "materi"), title: "Peta Konsep" },
+      { ...sectionOutput(3, "materi"), title: "Pendalaman Materi" },
+      { ...sectionOutput(4, "latihan"), title: "Uji Capaian Pembelajaran" },
+    ])],
+  };
+  assert.deepEqual(validateEModulCompleteness(output, basePayload), { ok: true, reason: null });
 });
 
 test("jumlah bab tidak sesuai ditolak", () => {
@@ -197,31 +208,18 @@ test("jumlah bab tidak sesuai ditolak", () => {
   assert.match(check.reason, /Jumlah bab/i);
 });
 
-test("jumlah bagian per bab tidak sesuai ditolak", () => {
-  const output = validOutput();
-  output.chapters[0].sections.push(sectionOutput(3, "materi"));
-
+test("bagian wajib tiap bab harus tersedia", () => {
+  const output = {
+    title: "Ekosistem",
+    chapters: [chapterOutput(1, [
+      { ...sectionOutput(1, "materi"), title: "Pertanyaan Pemantik" },
+      { ...sectionOutput(2, "materi"), title: "Peta Konsep" },
+      { ...sectionOutput(3, "materi"), title: "Pendalaman Materi" },
+    ])],
+  };
   const check = validateEModulCompleteness(output, basePayload);
   assert.equal(check.ok, false);
-  assert.match(check.reason, /bagian/i);
-});
-
-test("porsi latihan tidak sesuai ditolak", () => {
-  const output = validOutput();
-  output.chapters[1].sections = [sectionOutput(1, "materi"), sectionOutput(2, "materi")];
-
-  const check = validateEModulCompleteness(output, basePayload);
-  assert.equal(check.ok, false);
-  assert.match(check.reason, /latihan/i);
-});
-
-test("bab tanpa subbab materi ditolak", () => {
-  const output = validOutput();
-  output.chapters[2].sections = [sectionOutput(1, "latihan"), sectionOutput(2, "latihan")];
-
-  const check = validateEModulCompleteness(output, basePayload);
-  assert.equal(check.ok, false);
-  assert.match(check.reason, /materi/i);
+  assert.match(check.reason, /Uji Capaian Pembelajaran/i);
 });
 
 // --- Regenerasi satu bagian ---

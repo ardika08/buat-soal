@@ -48,6 +48,12 @@ test("menyusun judul, metadata, dan blok isi berurutan", () => {
     "Capaian: Menjelaskan komponen ekosistem.",
   ]);
   assert.deepEqual(model.blocks, [
+    { kind: "pagebreak", text: "" },
+    { kind: "heading", text: "Daftar Isi" },
+    { kind: "paragraph", text: "1. Bab 1: Ekosistem" },
+    { kind: "paragraph", text: "   Subbab 1.1: Komponen" },
+    { kind: "paragraph", text: "   Latihan 1.2" },
+    { kind: "pagebreak", text: "" },
     { kind: "heading", text: "Bab 1: Ekosistem" },
     { kind: "subheading", text: "Subbab 1.1: Komponen" },
     { kind: "paragraph", text: "Uraian materi." },
@@ -78,6 +84,12 @@ test("bab/bagian tanpa judul memakai teks pengganti; isi kosong dilewati", () =>
   }));
 
   assert.deepEqual(model.blocks, [
+    { kind: "pagebreak", text: "" },
+    { kind: "heading", text: "Daftar Isi" },
+    { kind: "paragraph", text: "2. Bab 2" },
+    { kind: "paragraph", text: "   Subbab" },
+    { kind: "paragraph", text: "   Latihan" },
+    { kind: "pagebreak", text: "" },
     { kind: "heading", text: "Bab 2" },
     { kind: "subheading", text: "Subbab" },
     { kind: "subheading", text: "Latihan" },

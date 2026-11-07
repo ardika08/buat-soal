@@ -6,7 +6,7 @@
  * (docx/pdf-lib) ada di Edge Function; berkas ini hanya menyiapkan isinya.
  */
 
-export type ExportBlockKind = "heading" | "subheading" | "paragraph";
+export type ExportBlockKind = "pagebreak" | "heading" | "subheading" | "paragraph";
 
 export interface ExportBlock {
   kind: ExportBlockKind;
@@ -118,7 +118,19 @@ export function buildEModulDocument(
     }
   }
 
-  const blocks: ExportBlock[] = [];
+  const blocks: ExportBlock[] = [
+    { kind: "pagebreak", text: "" },
+    { kind: "heading", text: "Daftar Isi" },
+  ];
+
+  for (const chapter of draft.chapters) {
+    blocks.push({ kind: "paragraph", text: `${chapter.order_number}. ${chapter.title.trim() || `Bab ${chapter.order_number}`}` });
+    for (const section of chapter.sections) {
+      blocks.push({ kind: "paragraph", text: `   ${section.title.trim() || (section.kind === "latihan" ? "Latihan" : "Subbab")}` });
+    }
+  }
+
+  blocks.push({ kind: "pagebreak", text: "" });
 
   for (const chapter of draft.chapters) {
     blocks.push({

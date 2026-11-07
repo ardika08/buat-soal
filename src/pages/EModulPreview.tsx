@@ -456,7 +456,7 @@ export default function EModulPreview() {
       ) : (
         <>
           <article className="mx-auto w-full max-w-[794px] rounded-lg border bg-white p-8 shadow-sm sm:p-12">
-            <header className="border-b border-slate-200 pb-6 text-center">
+            <header className="flex min-h-[70vh] flex-col items-center justify-center border-b border-slate-200 pb-6 text-center">
               {hasSchoolLetterhead(letterhead) && (
                 <div className="mb-6 border-b-4 border-double border-slate-800 pb-4">
                   <h2 className="text-xl font-extrabold uppercase tracking-wide text-slate-900">
@@ -481,6 +481,20 @@ export default function EModulPreview() {
               </p>
             </header>
 
+            <section className="page-break-before border-b border-slate-200 py-5">
+              <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Daftar Isi</h3>
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                {detail.chapters.map((chapter) => (
+                  <li key={chapter.id}>
+                    {chapter.title}
+                    <ul className="list-[lower-alpha] pl-5 text-slate-500">
+                      {chapter.sections.map((section) => <li key={section.id}>{section.title}</li>)}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
             {draft.topics.length > 0 && (
               <section className="border-b border-slate-200 py-5">
                 <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -499,7 +513,8 @@ export default function EModulPreview() {
 
             <div className="pt-2">
               {detail.chapters.map((chapter) => (
-                <section key={chapter.id} className="pt-6">
+                <section key={chapter.id} className="page-break-before pt-6">
+
                   <h3 className="text-lg font-bold text-slate-900">{chapter.title}</h3>
 
                   {chapter.sections.map((section) => (

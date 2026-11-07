@@ -45,7 +45,7 @@ export const EMODUL_MAX_EXERCISE_SHARE = 60;
 export const EMODUL_CREDIT_PER_SUBBAB = 1;
 
 export function emodulCreditCost(payload: GenerateEModulPayload): number {
-  const cost = Number(payload.chapters) * Number(payload.sub_chapters) * EMODUL_CREDIT_PER_SUBBAB;
+  const cost = Number(payload.topics?.length) * Number(payload.sub_chapters) * EMODUL_CREDIT_PER_SUBBAB;
   return Number.isFinite(cost) ? Math.max(1, Math.trunc(cost)) : 1;
 }
 
@@ -68,12 +68,12 @@ export function validateGeneratePayload(payload: GenerateEModulPayload): string 
     }
   }
 
-  if (
-    !Number.isInteger(payload.chapters) ||
-    payload.chapters < EMODUL_MIN_CHAPTERS ||
-    payload.chapters > EMODUL_MAX_CHAPTERS
-  ) {
-    return `Jumlah bab harus antara ${EMODUL_MIN_CHAPTERS} dan ${EMODUL_MAX_CHAPTERS}.`;
+  if (payload.topics.length > EMODUL_MAX_CHAPTERS) {
+    return `Jumlah materi maksimal ${EMODUL_MAX_CHAPTERS}.`;
+  }
+
+  if (payload.chapters !== payload.topics.length) {
+    return "Jumlah bab harus sama dengan jumlah materi.";
   }
 
   if (
@@ -109,16 +109,19 @@ export function buildEModulPrompt(payload: GenerateEModulPayload): string {
 
   return JSON.stringify({
     instruction:
-      "Susun e-modul (bahan ajar) terstruktur dalam Bahasa Indonesia formal. " +
-      "Buat bab sesuai jumlah yang diminta. Tiap bab berisi subbab materi dan latihan sesuai porsi latihan. " +
-      "Subbab materi berisi uraian yang runtut dan aplikatif; latihan berisi soal/aktivitas singkat. " +
-      "Kembalikan hanya JSON valid sesuai schema.",
+      "Susun e-book bahan ajar Bahasa Indonesia untuk Kurikulum Merdeka dengan pendekatan pembelajaran mendalam (deep learning: berkesadaran, bermakna, menggembirakan). " +
+      "Buat tepat satu BAB untuk setiap materi input, urutannya harus sama. Jangan menggabungkan atau menambah BAB. " +
+      "Setiap BAB wajib memiliki bagian berurutan: Pertanyaan Pemantik, Peta Konsep (uraikan sebagai teks/relasi konsep), Pendalaman Materi dengan subjudul bernomor dan uraian mendalam, aktivitas/konteks nyata yang sesuai, lalu Uji Capaian Pembelajaran berisi soal dan kunci/pedoman jawaban. Simpan Pertanyaan Pemantik, Peta Konsep, dan Pendalaman Materi sebagai bagian kind materi; simpan Uji Capaian Pembelajaran sebagai bagian kind latihan. " +
+      "Sesuaikan subbagian dengan karakter mapel/topik; contoh nama bagian tidak boleh dipaksakan bila tidak relevan. " +
+      "Gunakan tujuan pembelajaran materi terkait sebagai acuan isi BAB tersebut. Pastikan akurat, runtut, sesuai usia, inklusif, dan tidak mengarang CP resmi. " +
+      "Bagian sampul dan daftar isi dibuat oleh aplikasi; jangan keluarkan sebagai BAB. Kembalikan hanya JSON valid sesuai schema.",
     fase: payload.fase,
     kelas: payload.kelas,
     subject: payload.subject,
     semester: payload.semester,
-    jumlah_bab: payload.chapters,
-    subbab_per_bab: payload.sub_chapters,
+    jumlah_bab: payload.topics.length,
+    aturan_bab: "Satu topik/materi input = tepat satu bab, mengikuti urutan input.",
+    subbab_per_bab: "Buat subbagian sesuai kebutuhan isi dan kedalaman materi; bukan target jumlah tetap.",
     porsi_latihan_persen: payload.exercise_share,
     latihan_per_bab: exercisesPerChapter(payload),
     topics: topicList,
@@ -324,10 +327,7 @@ export function validateEModulCompleteness(
   payload: GenerateEModulPayload,
 ): CompletenessCheck {
   const expectedChapters = Number(payload.chapters);
-  const expectedSections = Number(payload.sub_chapters);
-  const expectedExercises = exercisesPerChapter(payload);
-
-  if (output.chapters.length !== expectedChapters) {
+  if (output.chapters.length !== expectedChapters || expectedChapters !== payload.topics.length) {
     return {
       ok: false,
       reason: `Jumlah bab tidak sesuai: diminta ${expectedChapters}, dihasilkan ${output.chapters.length}.`,
@@ -335,25 +335,22 @@ export function validateEModulCompleteness(
   }
 
   for (const chapter of output.chapters) {
-    if (chapter.sections.length !== expectedSections) {
-      return {
-        ok: false,
-        reason: `"${chapter.title}" punya ${chapter.sections.length} bagian, seharusnya ${expectedSections}.`,
-      };
+    const materialTitles = chapter.sections
+      .filter((section) => section.kind === "materi")
+      .map((section) => section.title.toLocaleLowerCase("id"));
+    const exerciseTitles = chapter.sections
+      .filter((section) => section.kind === "latihan")
+      .map((section) => section.title.toLocaleLowerCase("id"));
+    const requiredMaterialParts = ["pertanyaan pemantik", "peta konsep", "pendalaman materi"];
+
+    for (const required of requiredMaterialParts) {
+      if (!materialTitles.some((title) => title.includes(required))) {
+        return { ok: false, reason: `"${chapter.title}" belum memiliki bagian ${required}.` };
+      }
     }
 
-    const materi = chapter.sections.filter((section) => section.kind === "materi").length;
-    const latihan = chapter.sections.filter((section) => section.kind === "latihan").length;
-
-    if (materi === 0) {
-      return { ok: false, reason: `"${chapter.title}" belum punya subbab materi.` };
-    }
-
-    if (latihan !== expectedExercises) {
-      return {
-        ok: false,
-        reason: `"${chapter.title}" punya ${latihan} latihan, seharusnya ${expectedExercises}.`,
-      };
+    if (!exerciseTitles.some((title) => title.includes("uji capaian pembelajaran"))) {
+      return { ok: false, reason: `"${chapter.title}" belum memiliki Uji Capaian Pembelajaran.` };
     }
   }
 
