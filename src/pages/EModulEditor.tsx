@@ -16,7 +16,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
-  Sparkles,
+
   Trash2,
 } from "lucide-react";
 import BillingDialog from "@/components/billing/BillingDialog";
@@ -796,7 +796,7 @@ export default function EModulEditor() {
       </div>
 
       <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           Semua bagian disunting langsung dan tersimpan otomatis ke server. Urutan bisa dipindah,
           bagian bisa ditambah/dihapus/dibuat ulang, dan temuan pemeriksaan struktur bisa diklik

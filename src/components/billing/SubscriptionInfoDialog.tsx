@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crown, LifeBuoy, MessageSquareMore, Sparkles, Ticket } from "lucide-react";
+import { Crown, LifeBuoy, MessageSquareMore, ShieldCheck, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -66,7 +66,7 @@ export default function SubscriptionInfoDialog({
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6 overscroll-contain sm:px-8">
           <div className="grid gap-3">
             <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
-              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
               <p className="text-sm leading-6 text-slate-700">
                 Soalify menggunakan <span className="font-semibold text-slate-900">model AI tier premium</span> agar hasil soal lebih konsisten, relevan, dan efisien untuk kebutuhan pembelajaran.
               </p>

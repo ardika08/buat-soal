@@ -1,4 +1,4 @@
-import { Coins, Mail, Sparkles, UserCircle, Zap } from "lucide-react";
+import { Coins, Mail, BadgeCheck, UserCircle, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
 
@@ -42,7 +42,7 @@ export default function Profile() {
 
           <div className="rounded-xl border p-4">
             <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-              <Sparkles className="h-4 w-4 text-indigo-500" />
+              <BadgeCheck className="h-4 w-4 text-indigo-500" />
               Paket Aktif
             </div>
             <p className="mt-1 text-lg font-bold text-slate-900">{tier}</p>

@@ -1,4 +1,4 @@
-import { BookOpen, FileDown, Lock, School, Sparkles } from "lucide-react";
+import { BookOpen, FileDown, Lock, RefreshCw, School } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +20,7 @@ const BENEFITS = [
   { icon: BookOpen, text: "Buka seluruh e-modul & bahan ajar" },
   { icon: FileDown, text: "Unduh PDF & DOCX tanpa batas" },
   { icon: School, text: "Kop identitas sekolah pada dokumen" },
-  { icon: Sparkles, text: "Pembaruan struktur & konten modul" },
+  { icon: RefreshCw, text: "Pembaruan struktur & konten modul" },
 ];
 
 /**

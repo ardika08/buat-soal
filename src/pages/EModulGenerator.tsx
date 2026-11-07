@@ -8,7 +8,7 @@ import {
   Layers,
   Plus,
   Settings,
-  Sparkles,
+
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,7 @@ export default function EModulGenerator() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/60 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-              <Sparkles className="h-7 w-7" />
+              <BookOpen className="h-7 w-7" />
             </div>
             <h2 className="mt-4 font-bold text-slate-900">Menyusun e-modul...</h2>
             <p className="mt-1 text-sm text-slate-500">AI sedang merancang bab, subbab, dan latihan.</p>
@@ -550,7 +550,7 @@ export default function EModulGenerator() {
             disabled={isGenerating || isInsufficientCredits}
             className="w-44 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg hover:from-emerald-700 hover:to-teal-700"
           >
-            <Sparkles className="mr-2 h-4 w-4" />
+            <BookOpen className="mr-2 h-4 w-4" />
             Buat E-Modul
           </Button>
         )}

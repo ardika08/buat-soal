@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, FileText, Library, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, FileText, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EMODUL_NEW_PATH, EMODUL_PATH } from "@/lib/routes";
 
@@ -74,7 +74,7 @@ export default function TwoFlowPanel() {
             </Link>
             <Link to={EMODUL_PATH}>
               <Button variant="ghost" className="rounded-full text-emerald-700 hover:bg-emerald-50">
-                <Sparkles className="mr-1.5 h-4 w-4" />
+                <Library className="mr-1.5 h-4 w-4" />
                 Pustaka Materi
               </Button>
             </Link>

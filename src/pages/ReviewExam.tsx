@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, Sparkles, BookOpen, CheckSquare, Square } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, RotateCcw, BookOpen, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -895,7 +895,7 @@ export default function ReviewExam() {
                         onClick={() => { setRegenTarget(q); setRegenInstruction(""); }}
                         className="flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
                       >
-                        <Sparkles className="w-3.5 h-3.5" /> Buat Ulang (1 kredit)
+                        <RotateCcw className="w-3.5 h-3.5" /> Buat Ulang (1 kredit)
                       </button>
                       <button
                         type="button"

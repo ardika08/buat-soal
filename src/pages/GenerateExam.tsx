@@ -6,7 +6,6 @@ import {
   Settings,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   Upload,
   Plus,
   X,
@@ -14,6 +13,7 @@ import {
   Image as ImageIcon,
   AlertCircle,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -796,7 +796,7 @@ export default function GenerateExam() {
                       <span className="absolute right-3 top-3 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
                         Rekomendasi
                       </span>
-                      <Sparkles className="mb-2 h-6 w-6 text-indigo-500" />
+                      <Zap className="mb-2 h-6 w-6 text-indigo-500" />
                       <span className="font-semibold">AI Otomatis</span>
                       <span className="text-xs font-normal text-slate-500 mt-1">
                         Sistem mencari referensi terbaik secara otomatis
@@ -1060,11 +1060,11 @@ export default function GenerateExam() {
           >
             {isGenerating ? (
               <span className="flex items-center animate-pulse">
-                <Sparkles className="w-4 h-4 mr-2" /> Memproses...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...
               </span>
             ) : (
               <span className="flex items-center">
-                <Sparkles className="w-4 h-4 mr-2" /> Buat Soal
+                <FileText className="w-4 h-4 mr-2" /> Buat Soal
               </span>
             )}
           </Button>

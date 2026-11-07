@@ -6,7 +6,7 @@ import {
   FileDown,
   Lock,
   School,
-  Sparkles,
+
 } from "lucide-react";
 import BillingDialog from "@/components/billing/BillingDialog";
 import EbookUpgradeDialog from "@/components/emodul/EbookUpgradeDialog";
@@ -40,7 +40,7 @@ const BENEFITS = [
     description: "Dokumen memakai kop resmi sekolah Anda.",
   },
   {
-    icon: Sparkles,
+    icon: BookOpen,
     title: "Pembaruan materi",
     description: "Dapatkan pembaruan struktur dan konten modul.",
   },
@@ -161,7 +161,7 @@ export default function EbookAccess() {
       <div className="flex flex-wrap gap-3">
         <Link to={EMODUL_NEW_PATH}>
           <Button className="rounded-full bg-indigo-600 text-white hover:bg-indigo-700">
-            <Sparkles className="mr-1.5 h-4 w-4" />
+            <BookOpen className="mr-1.5 h-4 w-4" />
             Buat E-Modul
           </Button>
         </Link>

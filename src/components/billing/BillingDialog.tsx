@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, CreditCard, Crown, Loader2, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, CreditCard, Crown, Loader2, Wallet, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -289,7 +289,7 @@ function BillingPackagesPanel({
                   disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim() || !customCreditsValid}
                   className="bg-indigo-600 text-white hover:bg-indigo-700"
                 >
-                  {processingId === "custom-topup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {processingId === "custom-topup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
                   Bayar
                 </Button>
               </div>
@@ -322,7 +322,7 @@ function BillingPackagesPanel({
                     disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim()}
                     className="bg-indigo-600 text-white hover:bg-indigo-700"
                   >
-                    {processingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {processingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                     Bayar
                   </Button>
                 </div>

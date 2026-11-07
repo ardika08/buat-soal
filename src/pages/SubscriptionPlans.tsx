@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Crown, Gift, Lock, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Check, Crown, Gift, Lock, CreditCard, X } from "lucide-react";
 import BillingDialog from "@/components/billing/BillingDialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
@@ -223,7 +223,7 @@ export default function SubscriptionPlans() {
               onClick={() => setBillingOpen(true)}
               className="w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
             >
-              <Sparkles className="mr-1.5 h-4 w-4" />
+              <CreditCard className="mr-1.5 h-4 w-4" />
               {isPremiumActive ? "Perpanjang Paket" : "Pilih Paket"}
             </Button>
           </div>
@@ -305,7 +305,7 @@ export default function SubscriptionPlans() {
           variant="outline"
           className="mt-3 rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-100"
         >
-          <Sparkles className="mr-1.5 h-4 w-4" />
+          <Check className="mr-1.5 h-4 w-4" />
           Simulasikan Upgrade Berhasil
         </Button>
       </div>
