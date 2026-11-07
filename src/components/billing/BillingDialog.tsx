@@ -18,6 +18,10 @@ interface BillingDialogProps {
   defaultTab?: "topup" | "subscription";
 }
 
+interface BillingTopupPageProps {
+  defaultTab?: "topup" | "subscription";
+}
+
 function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -34,8 +38,10 @@ function formatRupiah(value: number) {
  */
 function BillingPackagesPanel({
   defaultTab,
+  standalone = false,
 }: {
   defaultTab: "topup" | "subscription";
+  standalone?: boolean;
 }) {
   const { user } = useAuth();
   const [packages, setPackages] = useState<BillingPackage[]>([]);
@@ -166,14 +172,21 @@ function BillingPackagesPanel({
 
   return (
     <>
-      <DialogHeader className="px-6 pt-6 pb-2">
-        <DialogTitle className="text-xl font-bold">Pilih Paket</DialogTitle>
+      {standalone ? (
+        <div className="mb-2">
+          <h1 className="text-2xl font-bold text-slate-900">Top Up Kredit</h1>
+          <p className="mt-1 text-sm text-slate-500">Pilih paket kredit atau tentukan jumlah top-up yang Anda butuhkan.</p>
+        </div>
+      ) : (
+        <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogTitle className="text-xl font-bold">Pilih Paket</DialogTitle>
         <DialogDescription>
           Top up untuk kebutuhan cepat, atau langganan premium untuk kuota besar dan model AI terbaik.
         </DialogDescription>
       </DialogHeader>
+      )}
 
-      <div className="px-6">
+      <div className={standalone ? "mb-4" : "px-6"}>
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
           <button
             className={`h-10 rounded-lg text-sm font-semibold transition-colors ${activeTab === "topup" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
@@ -192,7 +205,7 @@ function BillingPackagesPanel({
         </div>
       </div>
 
-      <div className="px-6 pb-6 pt-4 space-y-4">
+      <div className={standalone ? "space-y-4" : "px-6 pb-6 pt-4 space-y-4"}>
         <div className="rounded-xl border bg-slate-50 p-4">
           <label htmlFor="billing-name" className="block text-sm font-semibold text-slate-900">
             Data pembeli untuk checkout
@@ -336,6 +349,14 @@ function BillingPackagesPanel({
         </p>
       </div>
     </>
+  );
+}
+
+export function BillingTopupPage({ defaultTab = "topup" }: BillingTopupPageProps) {
+  return (
+    <div className="mx-auto max-w-4xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <BillingPackagesPanel defaultTab={defaultTab} standalone />
+    </div>
   );
 }
 

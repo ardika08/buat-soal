@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import ReviewExam from "./pages/ReviewExam";
 import QuestionBank from "./pages/QuestionBank";
 import TransactionHistory from "./pages/TransactionHistory";
+import CreditTopup from "./pages/CreditTopup";
 
 function App() {
   if (!isSupabaseConfigured) {
@@ -58,6 +59,7 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id`}
               <Route path="/history" element={<ExamHistory />} />
               <Route path="/question-bank" element={<QuestionBank />} />
               <Route path="/transactions" element={<TransactionHistory />} />
+              <Route path="/top-up" element={<CreditTopup />} />
               <Route path={PROFILE_PATH} element={<Profile />} />
               <Route path="generate" element={<GenerateExam />} />
               <Route path="review" element={<ReviewExam />} />

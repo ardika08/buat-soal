@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { BookOpen, Coins, FileText, History, Library, UserCircle } from "lucide-react";
+import { BookOpen, Coins, FileText, History, Library, UserCircle, Wallet } from "lucide-react";
 import { EMODUL_NEW_PATH, EMODUL_PATH, PROFILE_PATH } from "@/lib/routes";
 
 export interface SidebarItem {
@@ -44,6 +44,7 @@ export const sidebarGroups: SidebarGroup[] = [
     label: "Akun",
     items: [
       { label: "Profil", to: PROFILE_PATH, icon: UserCircle, description: "Identitas & ringkasan akun" },
+      { label: "Top Up Kredit", to: "/top-up", icon: Wallet, description: "Beli kredit untuk membuat materi" },
       { label: "Kredit & Transaksi", to: "/transactions", icon: Coins, description: "Mutasi kredit & langganan" },
     ],
   },
