@@ -116,7 +116,7 @@ export const emodulApi = {
       kelas: input.kelas,
       subject: input.subject,
       semester: input.semester,
-      chapters: input.chapters,
+      chapters: input.topics.length,
       sub_chapters: input.subChapters,
       exercise_share: input.exerciseShare,
       // Kunci idempotensi: klik ganda tidak memotong kredit dua kali.

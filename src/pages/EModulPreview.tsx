@@ -39,7 +39,7 @@ import {
 } from "@/lib/schoolLetterhead";
 
 /**
- * Pratinjau & unduh dokumen e-modul Ã¢â‚¬â€ tersambung ke backend nyata.
+ * Pratinjau & unduh dokumen e-modul — tersambung ke backend nyata.
  *
  * Draf dimuat lewat `emodul-detail`; berkas diunduh lewat `emodul-export`
  * (server menyusun PDF/DOCX dengan kop tersimpan), bukan dirender ulang di
@@ -469,7 +469,7 @@ export default function EModulPreview() {
                     <p className="text-xs text-slate-600">
                       {[letterhead.phone, letterhead.email]
                         .filter((value) => value.trim())
-                        .join(" Ã‚Â· ")}
+                        .join(" · ")}
                     </p>
                   )}
                 </div>
@@ -477,7 +477,7 @@ export default function EModulPreview() {
 
               <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{draft.title}</h2>
               <p className="mt-2 text-sm text-slate-500">
-                {draft.subject} Ã‚Â· {draft.fase} {draft.kelas} Ã‚Â· Semester {draft.semester}
+                {draft.subject} · {draft.fase} {draft.kelas} · Semester {draft.semester}
               </p>
             </header>
 
@@ -536,7 +536,7 @@ export default function EModulPreview() {
                 <div className="w-64 text-center text-sm text-slate-700">
                   <p>Kepala Sekolah</p>
                   <div className="h-16" />
-                  <p className="font-semibold text-slate-900">{letterhead.headmaster || "Ã¢â‚¬Â¦"}</p>
+                  <p className="font-semibold text-slate-900">{letterhead.headmaster || "…"}</p>
                   {letterhead.nip.trim() && (
                     <p className="text-xs text-slate-500">NIP. {letterhead.nip}</p>
                   )}
@@ -545,7 +545,7 @@ export default function EModulPreview() {
             )}
 
             <footer className="mt-10 border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
-              Soalify Ã‚Â· E-Modul {draft.subject}
+              Soalify · E-Modul {draft.subject}
             </footer>
           </article>
 
@@ -553,7 +553,7 @@ export default function EModulPreview() {
             <Printer className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
               Isi pratinjau dan unduhan berasal dari data tersimpan. Unduhan E-Modul tersedia
-              untuk paket Premium Ã¢â‚¬â€ pengguna gratis diarahkan ke penawaran langganan.
+              untuk paket Premium — pengguna gratis diarahkan ke penawaran langganan.
             </p>
           </div>
         </>

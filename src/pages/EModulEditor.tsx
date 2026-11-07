@@ -42,7 +42,7 @@ import {
 import { HOME_PATH, emodulPreviewPath } from "@/lib/routes";
 
 /**
- * Halaman editor e-modul ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â tersambung ke backend nyata.
+ * Halaman editor e-modul — tersambung ke backend nyata.
  *
  * Memuat draf lewat `emodul-detail`, menyimpan tiap suntingan ke server lewat
  * `emodul-autosave` (ter-debounce), mengelola susunan lewat `emodul-manage`, dan
@@ -74,7 +74,7 @@ export default function EModulEditor() {
   const timers = useRef<Record<number, number>>({});
 
   // ID tidak valid adalah kondisi turunan (bukan kejadian), jadi ditangani saat
-  // render ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â bukan lewat setState di dalam effect.
+  // render — bukan lewat setState di dalam effect.
   const hasValidId = Number.isInteger(eModulId) && eModulId > 0;
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function EModulEditor() {
     [detail],
   );
 
-  /** Elemen yang baru dituju dari daftar temuan ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â disorot sesaat. */
+  /** Elemen yang baru dituju dari daftar temuan — disorot sesaat. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const scrollToFinding = (finding: StructureFinding) => {
@@ -441,9 +441,9 @@ export default function EModulEditor() {
       <div className="space-y-3">
         <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <span>{draft.subject}</span>
-          <span aria-hidden="true">ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â·</span>
-          <span>{draft.fase} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {draft.kelas}</span>
-          <span aria-hidden="true">ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â·</span>
+          <span aria-hidden="true">·</span>
+          <span>{draft.fase} · {draft.kelas}</span>
+          <span aria-hidden="true">·</span>
           <span>Semester {draft.semester}</span>
         </p>
 
@@ -573,7 +573,7 @@ export default function EModulEditor() {
               {structure.ready ? "Struktur siap" : `${structure.errorCount} masalah`}
             </span>
             <span className="text-slate-400">
-              {structure.warningCount} peringatan ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {structure.infoCount} info
+              {structure.warningCount} peringatan · {structure.infoCount} info
             </span>
           </div>
         </div>
@@ -581,7 +581,7 @@ export default function EModulEditor() {
         {structure.findings.length === 0 ? (
           <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Struktur modul lengkap ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â tidak ada temuan.
+            Struktur modul lengkap — tidak ada temuan.
           </div>
         ) : (
           <ul className="mt-3 space-y-2">

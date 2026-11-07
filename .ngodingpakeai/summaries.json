@@ -1,0 +1,1008 @@
+{
+  ".claude/skills/ngodingpakeai/SKILL.md": {
+    "summary": "Skill Claude untuk menghubungkan, mengindeks, dan menyinkronkan repo ini ke NgodingPakeAI serta mengerjakan task yang ditugaskan. Mendokumentasikan Workspace ID target, perintah CLI (doctor, connect, sync --plan, sync, status, task next/get/start/complete/fail/reset), aturan menulis summaries.json, dan larangan mengunggah source code/secret langsung."
+  },
+  ".codex/skills/ngodingpakeai/SKILL.md": {
+    "summary": "Salinan skill NgodingPakeAI untuk agen Codex: panduan connect/sync repo ke workspace, alur CLI sync --plan lalu tulis summaries.json, dan loop pengerjaan task via task next. Sama isinya dengan versi .claude dan .cursor."
+  },
+  ".cursor/skills/ngodingpakeai/SKILL.md": {
+    "summary": "Salinan skill NgodingPakeAI untuk agen Cursor: cara menghubungkan repo, menulis ringkasan file Bahasa Indonesia, menjalankan sync, dan mengerjakan task per satu via CLI. Menegaskan CLI sebagai security gate dan larangan membocorkan source code."
+  },
+  ".github/workflows/billing-reconcile.yml": {
+    "summary": "Workflow GitHub Actions 'Billing reconcile' yang berjalan tiap 15 menit (cron) atau manual, memanggil Edge Function Supabase billing-reconcile via curl dengan header x-reconcile-token. Berfungsi sebagai jaring pengaman bila webhook Mayar hilang: menurunkan premium kedaluwarsa, menutup order pending >24 jam, dan memenuhi order yang sudah dibayar secara idempoten. Memakai secret BILLING_RECONCILE_TOKEN dan SUPABASE_FUNCTIONS_URL, fail-closed tanpa token cocok."
+  },
+  ".github/workflows/ci.yml": {
+    "summary": "Workflow CI 'CI' yang berjalan pada push ke main, pull request, dan manual. Menjalankan gate rilis: npm ci (memastikan lockfile sinkron), npm run lint, npm run build (typecheck+build), npm test (uji keamanan kredit/billing di Postgres lokal PGlite tanpa Supabase/jaringan), dan npm audit --omit=dev --audit-level=high."
+  },
+  ".gitignore": {
+    "summary": "Aturan gitignore root: mengabaikan log, file .env dan variannya (kecuali .env.example), supabase-secrets.env, node_modules, dist, .vercel, state Supabase CLI, serta berkas editor/IDE."
+  },
+  ".ngodingpakeaiignore": {
+    "summary": "File tambahan untuk mengecualikan path dari sinkronisasi NgodingPakeAI (sintaks .gitignore); secret, node_modules, build output, dan .env selalu diblokir CLI apa pun isinya. Saat ini hanya berisi contoh tanpa entri aktif."
+  },
+  "AGENTS.md": {
+    "summary": "Instruksi agen tingkat repo yang menyematkan skill NgodingPakeAI (blok ngodingpakeai:skill:start/end): cara connect/sync ke workspace 1c132ea4-21f2-4a1c-a468-0c416765bfdd, format summaries.json, aturan keras (tanpa source code/secret, hormati ignore, sync final hanya saat semua task selesai), dan alur kerja task frontend-first dengan checkpoint per layer/fase."
+  },
+  "AUDIT.md": {
+    "summary": "Laporan audit proyek Soalify (aplikasi pembuat soal AI untuk guru Indonesia, stack React 19/Vite/Tailwind + Supabase Edge Functions + Gemini/OpenAI). Menyebut commit yang diaudit, status build/lint/audit dependency, serta temuan prioritas P0 (escalation kredit via RLS profil, checkout tanpa pembayaran terverifikasi, pengurangan kredit tidak atomik) dan rencana perbaikan berfase."
+  },
+  "backend/.editorconfig": {
+    "summary": "Konfigurasi EditorConfig untuk folder backend Laravel: UTF-8, LF, indentasi 4 spasi, baris akhir baru, dan trim spasi; YAML 2 spasi dan compose.yaml 4 spasi."
+  },
+  "backend/.gitattributes": {
+    "summary": "Atribut Git untuk backend: normalisasi text eol=lf, diff khusus untuk blade/css/html/md/php, dan export-ignore untuk .github, CHANGELOG.md, serta .styleci.yml."
+  },
+  "backend/.gitignore": {
+    "summary": "Gitignore backend Laravel: mengabaikan log, .env, cache PHPUnit/phpactor, direktori IDE, auth.json, node_modules, build/public generated, storage key, dan vendor."
+  },
+  "backend/app/Exceptions/AiInvalidOutputException.php": {
+    "summary": "Exception AiInvalidOutputException (extends RuntimeException) yang dilempar saat keluaran AI tidak valid/tidak bisa diparse, dipetakan menjadi respons HTTP 422 oleh ExamController."
+  },
+  "backend/app/Exceptions/AiProviderException.php": {
+    "summary": "Exception AiProviderException (extends RuntimeException) untuk kegagalan penyedia AI; ExamController memetakannya menjadi respons HTTP 503 dengan error ai_provider_failed."
+  },
+  "backend/app/Exceptions/InsufficientCreditsException.php": {
+    "summary": "Exception InsufficientCreditsException (extends RuntimeException) membawa properti readonly creditsBalance dan creditsRequired beserta pesan Bahasa Indonesia; dipetakan ExamController menjadi respons HTTP 402 dengan kode insufficient_credits."
+  },
+  "backend/app/Http/Controllers/AuthController.php": {
+    "summary": "Controller autentikasi backend Laravel. Menyediakan register (pengguna baru dapat 10 kredit gratis plus catatan CreditTransaction bertipe bonus), login (verifikasi Hash, revoke token lama, terbit token Sanctum), google (login/register via ID token Google Identity Services), logout (hapus token aktif), dan me (profil terautentikasi). Helper formatUser menyusun payload user termasuk subscription_tier, credits_balance, dan subscription_expiry."
+  },
+  "backend/app/Http/Controllers/BillingController.php": {
+    "summary": "Controller billing: packages mengembalikan daftar paket dari BillingService, checkout memvalidasi package_id dan memanggil BillingService::checkout untuk mengaktifkan paket serta mencatat transaksi. Mengembalikan pesan 'Paket berhasil diaktifkan.' beserta package, transaction, dan data user yang diformat."
+  },
+  "backend/app/Http/Controllers/Controller.php": {
+    "summary": "Kelas dasar abstrak Controller untuk seluruh controller backend Laravel; masih kosong sebagai placeholder konvensi framework."
+  },
+  "backend/app/Http/Controllers/ExamController.php": {
+    "summary": "Controller ujian: index (daftar examSessions milik user dengan jumlah soal, paginasi 10, plus total_questions), show (detail sesi beserta soal), generate (memanggil ExamGenerationService dan memetakan exception ke 402 insufficient_credits, 422 ai_invalid_output, 503 ai_provider_failed), dan update soal (validasi tipe/konten/opsi/jawaban/ilustrasi lalu menyimpan perubahan)."
+  },
+  "backend/app/Http/Requests/GenerateExamRequest.php": {
+    "summary": "FormRequest validasi pembuatan ujian: memvalidasi curriculum, exam_type, class_phase, subject, semester, time_allocation, reference_type (AI/PDF/Manual) beserta reference_text/reference_file PDF, difficulty, cognitive_levels, difficulty_distribution (LOTS/MOTS/HOTS), pg_options, topics, dan formats (pg, pgk, jodoh, bs, isian, uraian). withValidator menegakkan total soal 1..MAX_QUESTIONS_PER_REQUEST (100), kewajiban file PDF, dan distribusi LOTS+MOTS+HOTS = 100%."
+  },
+  "backend/app/Models/CreditTransaction.php": {
+    "summary": "Model Eloquent CreditTransaction untuk ledger kredit (tabel credit_transactions): fillable user_id, type, amount, description; relasi belongsTo ke User."
+  },
+  "backend/app/Models/ExamSession.php": {
+    "summary": "Model Eloquent ExamSession menyimpan konfigurasi sesi ujian (curriculum, exam_type, class_phase, subject, semester, time_allocation, reference_type, difficulty, cognitive_levels, pg_options, include_illustration, topics, credits_consumed). Cast array untuk cognitive_levels/topics dan boolean/int; relasi belongsTo User dan hasMany Question diurutkan order_number."
+  },
+  "backend/app/Models/Question.php": {
+    "summary": "Model Eloquent Question untuk tiap butir soal (exam_session_id, order_number, question_type, cognitive_level, difficulty, question_content, options, correct_answer, illustration_prompt, illustration_image). Cast options sebagai array dan order_number integer; relasi belongsTo ExamSession."
+  },
+  "backend/app/Models/User.php": {
+    "summary": "Model User (extends Authenticatable) memakai trait HasApiTokens (Sanctum), HasFactory, dan Notifiable. Fillable name, email, password, subscription_tier, credits_balance, subscription_expiry; menyembunyikan password/remember_token dan meng-cast subscription_expiry serta email_verified_at ke datetime, password hashed, credits_balance integer. Relasi hasMany ExamSession dan CreditTransaction."
+  },
+  "supabase/migrations/20260515000000_initial_buat_soal_schema.sql": {
+    "summary": "Migrasi skema awal aplikasi Buat Soal. Mengaktifkan ekstensi pgcrypto dan membuat enum public.subscription_tier (free/basic/premium) serta public.credit_transaction_type (topup/subscription/deduction/bonus). Membuat tabel public.profiles (kunci ke auth.users, saldo kredit, tier langganan), public.credit_transactions (ledger kredit), public.exam_sessions (parameter pembuatan ujian), dan public.questions (soal ujian dengan opsi jsonb). Menambah index untuk pencarian profil, sesi ujian, soal, dan transaksi. Membuat fungsi trigger public.set_updated_at dan trigger updated_at pada profiles, exam_sessions, questions. Membuat fungsi security definer public.handle_new_user dengan trigger on_auth_user_created pada auth.users yang otomatis membuat profil dan memberi bonus 10 kredit selamat datang. Mengaktifkan RLS pada keempat tabel dengan policy select/update/delete milik pengguna sendiri, serta membuat bucket storage question-illustrations dengan policy baca publik."
+  },
+  "supabase/migrations/20260912000000_p0_security_hotfix.sql": {
+    "summary": "Hotfix keamanan P0 yang menutup eskalasi kredit/tier, checkout tanpa pembayaran terverifikasi, dan pengurangan kredit tidak atomik. Mencabut hak UPDATE/INSERT/DELETE langsung pada public.profiles untuk authenticated/anon dan menggantinya dengan RPC public.update_own_profile (hanya ubah nama, validasi panjang). Menambah kolom idempotency_key, reference_type, reference_id pada public.credit_transactions dan idempotency_key pada public.exam_sessions beserta unique index parsial. Membuat tabel public.payment_orders (order topup/langganan, status pending/paid/expired/failed/cancelled) dengan RLS baca milik sendiri. Membuat RPC security definer: public.spend_credits dan public.refund_credits (kunci baris FOR UPDATE, ledger idempoten), public.create_exam_with_credits (simpan sesi + soal + potong kredit atomik), dan public.fulfill_payment_order (satu-satunya jalur pemberian kredit/premium dari pembayaran). Semua RPC hanya diberikan ke service_role."
+  },
+  "supabase/migrations/20260912010000_p1_billing_lifecycle.sql": {
+    "summary": "Siklus hidup billing P1 sebagai pelengkap P0. Membuat fungsi public.expire_subscriptions untuk menurunkan profil premium yang sudah kedaluwarsa kembali ke free tanpa menyentuh saldo kredit. Membuat public.expire_stale_payment_orders(p_ttl_minutes) yang menandai order pending lebih lama dari TTL menjadi expired. Membuat public.orders_for_reconciliation(p_limit, p_days) untuk mendaftar order pending/expired yang perlu direkonsiliasi ke Mayar (punya provider_order_id, dalam jendela waktu). Ketiga fungsi security definer ini dicabut dari public/anon/authenticated dan hanya diberikan ke service_role (dipakai Edge Function). Menambah index komposit public.payment_orders(status, created_at) untuk mendukung sweep."
+  },
+  "supabase/migrations/20260913000000_create_exam_transaction_function.sql": {
+    "summary": "Membuat fungsi RPC public.create_exam_with_questions yang menjalankan pembuatan ujian secara transaksional dan atomik: menyisipkan satu baris ke public.exam_sessions dari parameter jsonb, menyisipkan seluruh soal ke public.questions dengan order_number berurutan, memotong kredit pengguna di public.profiles secara aman terhadap balapan (hanya jika saldo cukup), dan mencatat baris deduction pada public.credit_transactions. Bila salah satu langkah gagal seluruh operasi di-rollback sehingga tidak ada sesi ujian, soal, atau kredit yang setengah jadi. Mengembalikan jsonb berisi exam, questions, dan credits_remaining."
+  },
+  "supabase/migrations/20260914000000_question_editor.sql": {
+    "summary": "Editor soal lengkap: menambah kolom explanation pada public.questions dan mencabut DML langsung dari authenticated/anon agar semua mutasi lewat RPC security definer. Membuat helper public.owned_exam_profile_id yang memverifikasi kepemilikan sesi ujian via auth.uid(). Membuat RPC public.update_exam_question (validasi konten, jawaban, minimal dua opsi, dan kunci jawaban valid), public.add_exam_question (sisip pada posisi tertentu lalu geser nomor urut), public.delete_exam_question (menolak menghapus soal terakhir dan merapatkan nomor), public.reorder_exam_questions (menyusun ulang seluruh soal dua langkah untuk menghindari tabrakan nomor), dan public.regenerate_question_with_credit (ganti isi soal + potong kredit atomik, idempoten, hanya service_role). Hak execute diberikan sesuai peran (authenticated untuk editor, service_role untuk regenerasi)."
+  },
+  "supabase/migrations/20260914010000_question_bank.sql": {
+    "summary": "Membuat fitur bank soal pribadi. Membuat tabel public.question_bank yang menyimpan snapshot soal (subject, class_phase, topic, difficulty, konten, opsi, jawaban, pembahasan, ilustrasi) dengan content_hash dan unique (user_id, content_hash) untuk mencegah duplikat, plus index filter dan topik. Mengaktifkan RLS dengan policy baca milik sendiri dan mencabut INSERT/UPDATE/DELETE langsung (mutasi hanya lewat RPC). Membuat fungsi public.question_content_hash (fingerprint md5 dari konten+opsi+jawaban) serta RPC security definer: public.save_questions_to_bank (menyalin soal milik user dengan verifikasi kepemilikan), public.delete_bank_question, public.create_exam_from_bank (membuat sesi ujian baru dari snapshot tanpa memotong kredit), dan public.append_bank_to_exam (menambahkan soal bank ke sesi yang ada, melewati duplikat berdasarkan fingerprint). Hak execute diberikan ke authenticated."
+  },
+  "backend/app/Providers/AppServiceProvider.php": {
+    "summary": "Service provider default Laravel (AppServiceProvider). Method register() dan boot() masih kosong, belum ada binding service container maupun konfigurasi tambahan."
+  },
+  "backend/app/Services/Ai/AiPromptBuilder.php": {
+    "summary": "Membangun prompt dan JSON schema untuk generator soal AI. Method build() menyusun payload instruksi (kurikulum, exam_type, class_phase, subject, semester, topik, format, distribusi kesulitan LOTS/MOTS/HOTS dan pemetaan C1-C6) sedangkan schema() mengembalikan JSON schema output { questions[] } dengan field question_type, cognitive_level, difficulty, question_content, options, correct_answer, illustration_prompt."
+  },
+  "backend/app/Services/Ai/AiProvider.php": {
+    "summary": "Interface AiProvider yang mendefinisikan kontrak method generate(array $data, int $totalQuestions): array untuk semua provider AI penghasil soal (Gemini/OpenAI)."
+  },
+  "backend/app/Services/Ai/AiQuestionGenerator.php": {
+    "summary": "Orkestrator generate soal: memilih provider (Gemini untuk free, OpenAI untuk premium) lewat providerFor() dan hasPremiumAccess() berdasarkan subscription_tier/expiry user, memanggil provider hingga 2 kali percobaan, lalu memvalidasi output via QuestionOutputValidator. Melempar AiInvalidOutputException bila output tetap tidak valid."
+  },
+  "backend/app/Services/Ai/GeminiQuestionProvider.php": {
+    "summary": "Implementasi AiProvider untuk Google Gemini. generate() memakai AiPromptBuilder, mengirim HTTP POST ke endpoint generateContent model Gemini dengan responseMimeType application/json + responseJsonSchema, mendukung lampiran PDF sebagai inline_data, lalu men-decode JSON dari candidates. Melempar AiProviderException bila API key kosong, request gagal, atau respons tidak berisi teks."
+  },
+  "backend/app/Services/Ai/IllustrationImageGenerator.php": {
+    "summary": "Menghasilkan gambar ilustrasi soal via OpenAI Images API (endpoint /images/generations). generate() mengembalikan null bila prompt kosong/fitur nonaktif/API key hilang, menyimpan hasil b64_json ke public/generated/illustrations sebagai file PNG bernama UUID, dan mengembalikan URL publiknya. Kegagalan dicatat via Log tanpa menggagalkan proses."
+  },
+  "backend/app/Services/Ai/OpenAiQuestionProvider.php": {
+    "summary": "Implementasi AiProvider untuk OpenAI Responses API (endpoint /responses) dengan json_schema strict. generate() memakai AiPromptBuilder, mendukung lampiran PDF sebagai input_file base64, mengekstrak teks via extractText() dari output_text atau output[].content[]. Melempar AiProviderException bila API key kosong, request gagal, atau tidak ada teks JSON."
+  },
+  "backend/app/Services/Ai/QuestionOutputValidator.php": {
+    "summary": "Memvalidasi output AI: memastikan jumlah questions sesuai totalQuestions, field wajib terisi, opsi ada untuk format pg/pgk, membersihkan correct_answer, lalu mengacak urutan opsi (shuffleOptions) sambil menyesuaikan kunci jawaban. Melempar AiInvalidOutputException pada pelanggaran."
+  },
+  "backend/app/Services/BillingService.php": {
+    "summary": "Layanan billing/paket kredit. packages() membaca config billing.packages; checkout() memproses pembelian dalam DB transaction dengan lockForUpdate: menambah credits_balance user, mengaktifkan subscription_tier premium + subscription_expiry untuk paket subscription, dan mencatat CreditTransaction (type subscription/topup). Melempar InvalidArgumentException bila paket tak ditemukan."
+  },
+  "backend/app/Services/CreditService.php": {
+    "summary": "Layanan kredit soal. assertSufficient() memverifikasi credits_balance user cukup (melempar InsufficientCreditsException), deduct() mengurangi saldo dan mencatat CreditTransaction bertipe deduction dengan amount negatif."
+  },
+  "backend/app/Services/DummyQuestionGenerator.php": {
+    "summary": "Generator soal dummy untuk pengembangan/testing tanpa AI. generate() menyusun soal berdasarkan formats (pg, pgk, jodoh, bs, isian, uraian) dengan method makeMultipleChoice/makeComplexChoice/makeMatching/makeTrueFalse/makeFillBlank/makeEssay, menghitung jumlah opsi dari pg_options (A-C/A-D/A-E) dan menggilir level kognitif serta tingkat kesulitan."
+  },
+  "backend/app/Services/ExamGenerationService.php": {
+    "summary": "Service utama generate ujian: generate() menghitung total soal dari formats, cek kecukupan kredit, memanggil AiQuestionGenerator lalu attachIllustrationImages (maksimal sesuai ai.illustrations.max_per_exam, hanya untuk soal PG ber-prompt), dan menyimpan ExamSession beserta questions di dalam DB transaction dengan lockForUpdate serta pemotongan kredit."
+  },
+  "backend/artisan": {
+    "summary": "CLI entry point Laravel (artisan). Memuat autoloader Composer dan bootstrap/app.php lalu menjalankan perintah via handleCommand(ArgvInput)."
+  },
+  "backend/bootstrap/app.php": {
+    "summary": "Bootstrap aplikasi Laravel 12: mengonfigurasi routing web/api/console plus health /up, middleware (prepend HandleCors untuk akses React dev server, autentikasi pakai Sanctum bearer token dari localStorage bukan cookie SPA), dan render JSON untuk request api/* atau expectsJson."
+  },
+  "backend/bootstrap/cache/.gitignore": {
+    "summary": "File gitignore untuk folder bootstrap/cache: mengabaikan semua file cache kecuali file .gitignore itu sendiri."
+  },
+  "backend/bootstrap/providers.php": {
+    "summary": "Daftar service provider aplikasi yang di-bootstrap; hanya mendaftarkan AppServiceProvider."
+  },
+  "backend/composer.json": {
+    "summary": "Manifest Composer proyek Laravel 12 (PHP ^8.2) dengan dependensi utama laravel/framework, laravel/sanctum, laravel/tinker; dev: phpunit, pint, pail, sail, mockery, faker, collision. Mendefinisikan autoload PSR-4 (App\\, Database\\Factories, Database\\Seeders, Tests\\) serta script setup/dev/test (server+queue+pail+vite via concurrently)."
+  },
+  "backend/composer.lock": {
+    "summary": "Lockfile dependensi Composer yang mengunci versi paket PHP secara pasti sesuai composer.json. File generated, tidak perlu ringkasan rinci."
+  },
+  "backend/config/ai.php": {
+    "summary": "Konfigurasi layanan AI: provider default free (gemini) dan premium (openai), kredensial/model/base_url Gemini dan OpenAI, serta pengaturan ilustrasi (enabled, model image, size, quality, timeout, max_per_exam, public_url)."
+  },
+  "backend/config/app.php": {
+    "summary": "Konfigurasi inti aplikasi Laravel: name, env, debug, url, timezone (UTC), locale, cipher AES-256-CBC, APP_KEY dan previous_keys, serta driver maintenance mode (file/cache)."
+  },
+  "backend/config/auth.php": {
+    "summary": "Konfigurasi autentikasi: guard default web (session), user provider eloquent memakai model App\\Models\\User, broker reset password users dengan tabel password_reset_tokens, dan password_timeout."
+  },
+  "backend/config/billing.php": {
+    "summary": "Daftar paket billing statis: topup-50, topup-100 (tipe topup) serta premium-6m dan premium-12m (tipe subscription) masing-masing dengan credits, price, dan duration_months. Dipakai BillingService."
+  },
+  "backend/config/cache.php": {
+    "summary": "Konfigurasi cache Laravel: default store database, definisi store array/database/file/memcached/redis/dynamodb/octane/failover, dan prefix cache key."
+  },
+  "backend/config/cors.php": {
+    "summary": "Konfigurasi CORS: path api/* dan sanctum/csrf-cookie, semua method/header diizinkan, origin dari FRONTEND_URL serta localhost:3000/5173/5174, supports_credentials true."
+  },
+  "backend/config/database.php": {
+    "summary": "Konfigurasi koneksi database Laravel. Menetapkan koneksi default lewat env DB_CONNECTION (fallback sqlite) dan mendefinisikan koneksi sqlite, mysql, mariadb, pgsql, sqlsrv, serta redis default dan cache. Menjadi sumber pengaturan host, port, database, kredensial, dan charset yang dipakai seluruh model Eloquent."
+  },
+  "backend/config/filesystems.php": {
+    "summary": "Konfigurasi filesystem Laravel. Menetapkan disk default lewat env FILESYSTEM_DISK (fallback local) dan mendefinisikan disk local, public, dan s3 beserta opsi visibility/url. Juga mengatur symbolic link public/storage ke storage/app/public yang dibuat oleh artisan storage:link."
+  },
+  "backend/config/logging.php": {
+    "summary": "Konfigurasi logging Laravel berbasis Monolog. Menetapkan channel default lewat env LOG_CHANNEL (fallback stack) dan mendefinisikan channel stack, single, daily, slack, papertrail, stderr, syslog, errorlog, null, dan emergency beserta level dan path log di storage/logs."
+  },
+  "backend/config/mail.php": {
+    "summary": "Konfigurasi pengiriman email Laravel. Menetapkan mailer default lewat env MAIL_MAILER (fallback log) dan mendefinisikan transport smtp, ses, postmark, resend, sendmail, log, array, failover, serta roundrobin. Juga mengatur alamat dan nama pengirim global pada bagian from."
+  },
+  "backend/config/queue.php": {
+    "summary": "Konfigurasi antrian job Laravel. Menetapkan koneksi default lewat env QUEUE_CONNECTION (fallback database) dan mendefinisikan koneksi sync, database (tabel jobs), beanstalkd, sqs, redis, deferred, background, dan failover. Mengatur tabel batching job_batches dan penyimpanan failed_jobs."
+  },
+  "backend/config/sanctum.php": {
+    "summary": "Konfigurasi autentikasi Laravel Sanctum untuk API token. Mengatur daftar stateful domain (default localhost dan beberapa port pengembangan), guard web, masa kedaluwarsa token, token prefix, serta middleware authenticate_session, encrypt_cookies, dan validate_csrf_token."
+  },
+  "backend/config/services.php": {
+    "summary": "Konfigurasi kredensial layanan pihak ketiga. Menyediakan entri postmark, resend, google (client id), ses, dan slack, yang seluruh nilainya dibaca dari environment. Menjadi lokasi konvensional untuk kredensial integrasi eksternal agar paket dapat menemukannya."
+  },
+  "backend/config/session.php": {
+    "summary": "Konfigurasi session Laravel. Menetapkan driver default lewat env SESSION_DRIVER (fallback database), masa hidup, opsi expire_on_close, enkripsi, lokasi file, koneksi database, nama cookie, path, domain, secure, http_only, same_site, dan partitioned."
+  },
+  "backend/database/.gitignore": {
+    "summary": "Mengabaikan file database sqlite dari kontrol versi Git."
+  },
+  "backend/database/factories/UserFactory.php": {
+    "summary": "Factory Eloquent untuk model User. Mendefinisikan state default pembuatan user palsu dengan nama, email unik, email terverifikasi, password ter-hash (di-cache statis), dan remember token. Menyediakan state unverified untuk membuat user tanpa email terverifikasi."
+  },
+  "backend/database/migrations/0001_01_01_000000_create_users_table.php": {
+    "summary": "Migration pembuatan tabel inti autentikasi. Membuat tabel users dengan kolom name, email unik, email_verified_at, password, subscription_tier (enum free/basic/premium, default free), credits_balance (default 10), dan subscription_expiry. Juga membuat tabel password_reset_tokens (email, token) dan sessions (id, user_id, ip_address, user_agent, payload, last_activity)."
+  },
+  "backend/database/migrations/0001_01_01_000001_create_cache_table.php": {
+    "summary": "Migration pembuatan tabel cache. Membuat tabel cache dengan kolom key (primary), value, dan expiration terindeks, serta tabel cache_locks dengan kolom key (primary), owner, dan expiration untuk mendukung penguncian cache."
+  },
+  "backend/database/migrations/0001_01_01_000002_create_jobs_table.php": {
+    "summary": "Migration pembuatan tabel antrian job. Membuat tabel jobs (queue, payload, attempts, reserved_at, available_at, created_at), job_batches (id, name, total/pending/failed jobs, failed_job_ids, options, cancelled_at, created_at, finished_at), dan failed_jobs (uuid unik, connection, queue, payload, exception, failed_at)."
+  },
+  "backend/database/migrations/2026_05_14_082137_create_credit_transactions_table.php": {
+    "summary": "Migration pembuatan tabel credit_transactions untuk mencatat mutasi kredit pengguna. Kolom: user_id (foreign key ke users, cascade delete), type (enum topup/subscription/deduction/bonus), amount (integer), dan description (nullable), plus timestamps."
+  },
+  "backend/database/migrations/2026_05_14_082137_create_exam_sessions_table.php": {
+    "summary": "Migration pembuatan tabel exam_sessions yang menyimpan konfigurasi sesi pembuatan soal. Kolom penting: user_id (foreign key cascade delete), curriculum, exam_type, class_phase, subject, semester (default Ganjil), time_allocation (default 90 menit), reference_type (default AI), difficulty, cognitive_levels (json), pg_options, include_illustration, topics (json), dan credits_consumed."
+  },
+  "backend/database/migrations/2026_05_14_082137_create_questions_table.php": {
+    "summary": "Migration pembuatan tabel questions untuk menyimpan butir soal hasil sesi. Kolom: exam_session_id (foreign key cascade delete), order_number, question_type (PG/PGK/Menjodohkan/B-S/Isian/Uraian), cognitive_level (C1-C6), difficulty, question_content, options (json pilihan jawaban), correct_answer, dan illustration_prompt."
+  },
+  "backend/database/migrations/2026_05_14_084833_create_personal_access_tokens_table.php": {
+    "summary": "Migration tabel personal_access_tokens milik Laravel Sanctum. Kolom: tokenable (morphs), name, token unik 64 karakter, abilities, last_used_at, dan expires_at terindeks, digunakan untuk menyimpan token akses API."
+  },
+  "backend/database/migrations/2026_05_15_000001_add_illustration_image_to_questions_table.php": {
+    "summary": "Migration penambahan kolom ke tabel questions. Menambahkan kolom illustration_image bertipe longText nullable setelah kolom illustration_prompt, dan menghapusnya saat rollback, untuk menyimpan gambar ilustrasi soal."
+  },
+  "backend/database/seeders/DatabaseSeeder.php": {
+    "summary": "Seeder utama database. Membuat satu user demo (guru@demo.com) dengan subscription_tier free dan saldo kredit awal 100 bila belum ada, lalu mencatat transaksi kredit bertipe bonus sebesar 100 hanya saat user baru dibuat. Dipakai untuk keperluan pengembangan dan pengujian."
+  },
+  "backend/package.json": {
+    "summary": "Manifest npm untuk aset frontend Laravel. Menandai proyek private bertipe module dan mendefinisikan script build (vite build) serta dev (vite). Dev dependencies mencakup Vite, laravel-vite-plugin, Tailwind CSS 4, axios, dan concurrently."
+  },
+  "backend/phpunit.xml": {
+    "summary": "Konfigurasi PHPUnit untuk pengujian backend. Mendefinisikan testsuite Unit dan Feature dari direktori tests, cakupan kode pada app, serta variabel environment pengujian seperti DB sqlite in-memory, mail array, queue sync, dan cache array."
+  },
+  "backend/public/.htaccess": {
+    "summary": "Aturan Apache mod_rewrite untuk front controller Laravel. Menonaktifkan directory listing, meneruskan header Authorization dan X-XSRF-Token, mengalihkan trailing slash, serta mengarahkan seluruh request non-file ke index.php."
+  },
+  "backend/public/index.php": {
+    "summary": "Entry point HTTP Laravel. Menentukan waktu mulai aplikasi, memeriksa mode maintenance, memuat autoloader Composer, mem-bootstrap aplikasi dari bootstrap/app.php, lalu menangani request masuk melalui handleRequest."
+  },
+  "backend/public/robots.txt": {
+    "summary": "File robots.txt yang mengizinkan semua user-agent mengindeks seluruh situs (tanpa Disallow)."
+  },
+  "backend/README.md": {
+    "summary": "README bawaan Laravel untuk package backend aplikasi buat-soal. Berisi penjelasan umum framework Laravel, fitur (routing, ORM Eloquent, queue, broadcasting), tautan dokumentasi dan Laracasts, daftar sponsor, panduan kontribusi, dan lisensi MIT. Tidak memuat detail spesifik aplikasi."
+  },
+  "backend/resources/css/app.css": {
+    "summary": "Stylesheet utama frontend Laravel. Mengimpor Tailwind CSS v4 lewat @import 'tailwindcss' dan mendeklarasikan @source untuk view pagination Laravel, file blade, dan JS agar class terdeteksi. Menetapkan tema font sans 'Instrument Sans' melalui blok @theme."
+  },
+  "backend/resources/js/app.js": {
+    "summary": "Entry point JavaScript frontend. Hanya mengimpor './bootstrap' untuk menyiapkan dependensi global (axios). Tidak ada logika aplikasi lain di sini."
+  },
+  "backend/resources/js/bootstrap.js": {
+    "summary": "Bootstrap dependensi JavaScript frontend. Mengimpor axios, mengeksposnya sebagai window.axios, dan menyetel header default X-Requested-With: XMLHttpRequest untuk semua permintaan AJAX."
+  },
+  "backend/resources/views/welcome.blade.php": {
+    "summary": "Halaman welcome bawaan Laravel (template default). Menampilkan logo dan tautan dokumentasi dengan layout responsif, memuat font Instrument Sans, dan memuat aset via @vite bila manifest build tersedia atau memakai CSS Tailwind inline sebagai fallback. Menyertakan navigasi Log in/Dashboard melalui Route::has('login')."
+  },
+  "backend/routes/api.php": {
+    "summary": "Definisi route API aplikasi buat-soal dengan prefix /api. Route publik auth: POST /auth/register, POST /auth/login, POST /auth/google. Route terproteksi middleware auth:sanctum: POST /auth/logout, GET /auth/me, exams (GET /exams, POST /exams/generate, GET /exams/{id}, GET /exams/{examId}/questions/{questionId}/illustration, PUT /exams/{examId}/questions/{questionId}, DELETE /exams/{id}), dan billing (GET /billing/packages, POST /billing/checkout). Controller: AuthController, ExamController, BillingController."
+  },
+  "backend/routes/console.php": {
+    "summary": "Definisi perintah Artisan berbasis closure. Mendaftarkan perintah 'inspire' yang menampilkan kutipan inspiratif dari Illuminate\\Foundation\\Inspiring. Tidak ada perintah kustom aplikasi lain."
+  },
+  "backend/routes/web.php": {
+    "summary": "Definisi route web. Hanya mendaftarkan GET '/' yang mengembalikan view 'welcome'. Tidak ada route web lain karena aplikasi utamanya berbasis API."
+  },
+  "backend/storage/app/.gitignore": {
+    "summary": "File .gitignore untuk direktori storage/app; mengabaikan semua isi kecuali subfolder private/ dan public/ serta file .gitignore itu sendiri."
+  },
+  "backend/storage/app/private/.gitignore": {
+    "summary": "File .gitignore untuk storage/app/private; mengabaikan semua file di dalamnya kecuali .gitignore."
+  },
+  "backend/storage/app/public/.gitignore": {
+    "summary": "File .gitignore untuk storage/app/public; mengabaikan semua file di dalamnya kecuali .gitignore."
+  },
+  "backend/storage/framework/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework; mengabaikan file cache framework seperti compiled.php, config.php, routes.php, events.scanned.php, schedule-*, services.json, dan file maintenance/down."
+  },
+  "backend/storage/framework/cache/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework/cache; mengabaikan semua isi kecuali subfolder data/ dan file .gitignore."
+  },
+  "backend/storage/framework/cache/data/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework/cache/data; mengabaikan semua file cache kecuali .gitignore."
+  },
+  "backend/storage/framework/sessions/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework/sessions; mengabaikan semua file sesi kecuali .gitignore."
+  },
+  "backend/storage/framework/testing/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework/testing; mengabaikan semua file sementara pengujian kecuali .gitignore."
+  },
+  "backend/storage/framework/views/.gitignore": {
+    "summary": "File .gitignore untuk storage/framework/views; mengabaikan semua file blade terkompilasi kecuali .gitignore."
+  },
+  "backend/tests/Feature/AuthApiTest.php": {
+    "summary": "Feature test alur autentikasi API (AuthApiTest, memakai RefreshDatabase). Menguji register memberi 10 kredit gratis plus transaksi bonus CreditTransaction, login/me/logout dengan token Sanctum, login Google (register user baru dapat 10 kredit, existing user tanpa bonus ganda, tolak audience salah), dan /api/auth/me wajib autentikasi. Memakai Http::fake untuk endpoint oauth2.googleapis.com."
+  },
+  "backend/tests/Feature/BillingApiTest.php": {
+    "summary": "Feature test billing API (BillingApiTest, RefreshDatabase, Sanctum::actingAs). Menguji GET /api/billing/packages mengembalikan 4 paket (mulai topup-50), checkout topup-50 menambah saldo kredit dan mencatat CreditTransaction tipe topup, aktivasi premium-6m menaikkan tier ke premium dengan expiry masa depan dan bonus 1000 kredit, serta paket tak dikenal mengembalikan 404."
+  },
+  "backend/tests/Feature/ExamApiTest.php": {
+    "summary": "Feature test utama pembuatan soal (ExamApiTest, RefreshDatabase) untuk endpoint /api/exams. Menguji generate membuat ExamSession dan Question, memotong kredit dan mencatat transaksi deduction, 402 saat kredit kurang, pemilihan provider AI (Gemini untuk free, OpenAI untuk premium), pembuatan gambar ilustrasi dan batasannya, pengacakan jawaban pilihan ganda, pembersihan prefix rubrik jawaban uraian, unduh ilustrasi (izin pemilik), gagal provider/invalid output tanpa potong kredit, otorisasi show/delete/update milik user, cascade delete, dan batas maksimum 100 soal. Memakai Http::fake, helper payload, fakeGeminiSuccess, fakeOpenAiSuccess, dan pembuat soal."
+  },
+  "backend/tests/Feature/ExampleTest.php": {
+    "summary": "Feature test contoh bawaan Laravel. Menguji GET '/' mengembalikan status 200. Hanya placeholder."
+  },
+  "backend/tests/TestCase.php": {
+    "summary": "Base class TestCase untuk semua pengujian backend, memperluas Illuminate\\Foundation\\Testing\\TestCase. Tidak menambahkan helper kustom."
+  },
+  "backend/tests/Unit/ExampleTest.php": {
+    "summary": "Unit test contoh bawaan Laravel (namespace Tests\\Unit). Menguji assertTrue(true). Hanya placeholder."
+  },
+  "backend/vite.config.js": {
+    "summary": "Konfigurasi Vite untuk Laravel. Menggunakan plugin laravel-vite-plugin dengan input resources/css/app.css dan resources/js/app.js serta refresh aktif, plugin @tailwindcss/vite, dan mengabaikan folder storage/framework/views dari watcher."
+  },
+  "components.json": {
+    "summary": "Konfigurasi shadcn/ui untuk proyek Soalify: menetapkan style base-nova, Tailwind CSS dengan CSS variables, icon library lucide, serta alias import (@/components, @/components/ui, @/lib/utils, @/lib, @/hooks). Dipakai generator komponen UI agar penempatan file dan import konsisten."
+  },
+  "eslint.config.js": {
+    "summary": "Konfigurasi ESLint flat config untuk proyek React+TypeScript+Vite. Menggabungkan aturan js.configs.recommended, typescript-eslint, eslint-plugin-react-hooks, dan react-refresh untuk file .ts/.tsx, dengan globals browser dan mengabaikan folder dist."
+  },
+  "index.html": {
+    "summary": "Template HTML entry Vite untuk aplikasi Soalify. Berisi root div#root, favicon, meta viewport responsif, dan memuat modul /src/main.tsx sebagai titik masuk React."
+  },
+  "package-lock.json": {
+    "summary": "Lockfile dependensi npm untuk proyek Soalify. Mengunci versi pasti seluruh dependency dan devDependency (React, Vite, Supabase, Tailwind, jspdf, docx, dsb.) agar instalasi reproducible."
+  },
+  "package.json": {
+    "summary": "Manifest proyek Soalify (React 19 + Vite). Mendefinisikan script dev/build/lint/preview serta test Node untuk security, billing, lifecycle, dan api, serta dependensi utama seperti @supabase/supabase-js, docx, jspdf, react-router-dom, dan tailwindcss."
+  },
+  "postcss.config.js": {
+    "summary": "Konfigurasi PostCSS yang mengaktifkan plugin tailwindcss dan autoprefixer untuk memproses styling Tailwind di aplikasi."
+  },
+  "prd.md": {
+    "summary": "Product Requirements Document aplikasi Soalify: menjelaskan tujuan mengotomatiskan pembuatan soal ujian guru SD/SMP/SMA, kebutuhan (integrasi AI, pemrosesan PDF, sistem kredit/kuota, diferensiasi model AI per tier), fitur inti (wizard konfigurasi kurikulum/jenis ujian, input materi, sumber referensi, personalisasi Taksonomi Bloom C1-C6), serta tech stack dan skema data."
+  },
+  "README.md": {
+    "summary": "Dokumentasi proyek Soalify: menjelaskan stack React+Vite dengan Supabase (Auth, PostgreSQL, Storage, Edge Functions), variabel environment frontend (Supabase URL/anon key, Google Client ID), langkah setup Supabase termasuk migration dan deploy Edge Functions exam-generate & billing-checkout, serta cara menjalankan lokal dan build."
+  },
+  "src/App.css": {
+    "summary": "Stylesheet CSS global berisi gaya komponen halaman (counter, hero, #center, #next-steps, ticks) dan media query responsif. Sebagian besar bersifat boilerplate template Vite dan tidak banyak dipakai karena UI utama memakai Tailwind."
+  },
+  "src/App.tsx": {
+    "summary": "Komponen root aplikasi yang menyusun routing React Router. Menampilkan layar peringatan bila Supabase belum dikonfigurasi (isSupabaseConfigured), lalu membungkus AuthProvider dan BrowserRouter dengan rute /login publik, grup rute terproteksi di dalam AppLayout (Dashboard, ExamHistory, QuestionBank, TransactionHistory, GenerateExam, ReviewExam, BillingReturn), dan redirect fallback ke /.",
+    "sections": [
+      {
+        "symbol": "App",
+        "startLine": 15,
+        "endLine": 61,
+        "summary": "Mengecek konfigurasi Supabase, menampilkan panduan .env bila belum lengkap, dan merender pohon route aplikasi di balik ProtectedRoute."
+      }
+    ]
+  },
+  "src/components/auth/ProtectedRoute.tsx": {
+    "summary": "Komponen guard rute yang menggunakan useAuth untuk mengecek sesi. Menampilkan indikator 'Memuat sesi...' saat isLoading, merender Outlet bila user terautentikasi, atau mengalihkan ke /login bila belum login.",
+    "sections": [
+      {
+        "symbol": "ProtectedRoute",
+        "startLine": 4,
+        "endLine": 16,
+        "summary": "Membatasi akses rute: tampilkan loading, lalu Outlet untuk user login atau Navigate ke /login."
+      }
+    ]
+  },
+  "src/components/billing/BillingDialog.tsx": {
+    "summary": "Dialog pembelian kredit dan langganan. Menyediakan dua tab (topup dan subscription), memuat paket dari billingApi.packages, form data pelanggan (nama/email/mobile tersimpan di localStorage), input kredit kustom dengan batas CUSTOM_TOPUP_MIN/MAX dan rate CUSTOM_CREDIT_RATE, lalu memicu checkout Mayar via billingApi dan menangani respons pembayaran.",
+    "sections": [
+      {
+        "symbol": "BillingPackagesPanel",
+        "startLine": 35,
+        "endLine": 340,
+        "summary": "Panel isi dialog: fetch paket billing, kelola state tab/kredit/pelanggan, hitung harga, dan jalankan handleCheckout ke gateway pembayaran."
+      },
+      {
+        "symbol": "BillingDialog",
+        "startLine": 342,
+        "endLine": 350,
+        "summary": "Wrapper dialog yang me-mount panel hanya saat terbuka dan mengoper defaultTab."
+      }
+    ]
+  },
+  "src/components/billing/SubscriptionInfoDialog.tsx": {
+    "summary": "Dialog edukasi yang menampilkan alasan berlangganan Soalify dengan countdown sebelum tombol tutup aktif. Menerima props onAcknowledge dan countdownSeconds (default 15), mengunci penutupan hingga hitungan selesai, dan menyediakan tombol 'Saya Mengerti'.",
+    "sections": [
+      {
+        "symbol": "SubscriptionInfoDialog",
+        "startLine": 17,
+        "endLine": 126,
+        "summary": "Dialog informasi langganan dengan timer countdown yang mengontrol canClose dan memanggil onAcknowledge saat ditutup."
+      }
+    ]
+  },
+  "src/components/exams/DeleteExamDialog.tsx": {
+    "summary": "Dialog konfirmasi penghapusan riwayat soal. Menerima props exam (ExamSession|null), isDeleting, errorMessage, onCancel, dan onConfirm; menampilkan peringatan permanen, pesan error opsional, serta tombol Batal/Hapus dengan indikator loading.",
+    "sections": [
+      {
+        "symbol": "DeleteExamDialog",
+        "startLine": 20,
+        "endLine": 57,
+        "summary": "Konfirmasi hapus: tampilkan mata pelajaran, peringatan, dan tombol aksi yang memanggil onCancel/onConfirm."
+      }
+    ]
+  },
+  "src/components/exams/ExamHistoryItem.tsx": {
+    "summary": "Kartu item riwayat ujian yang menampilkan subjek, fase kelas, jenis ujian, dan tanggal dibuat terformat Indonesia. Menerima props exam (ExamSession) dan onDelete, serta menyediakan navigasi ke /review?exam=<id> dan tombol hapus.",
+    "sections": [
+      {
+        "symbol": "ExamHistoryItem",
+        "startLine": 11,
+        "endLine": 84,
+        "summary": "Baris riwayat soal: format tanggal, tombol Lihat Hasil menuju review, dan tombol hapus yang memanggil onDelete."
+      }
+    ]
+  },
+  "src/components/layout/AppLayout.tsx": {
+    "summary": "Layout utama aplikasi: header sticky dengan logo Soalify, navigasi (Dashboard, Buat Soal, Riwayat, Transaksi, Bank Soal), badge kredit dari user.credits_balance, info user dan tombol logout. Menampilkan AppStatsBar di halaman beranda, Outlet untuk konten, SalesProofWidget, dan footer.",
+    "sections": [
+      {
+        "symbol": "AppLayout",
+        "startLine": 8,
+        "endLine": 117,
+        "summary": "Kerangka halaman terproteksi: top nav, badge kredit, area konten Outlet, widget marketing, dan footer."
+      }
+    ]
+  },
+  "src/components/marketing/AppStatsBar.tsx": {
+    "summary": "Bar statistik aplikasi yang memanggil Edge Function 'app-stats' via supabase.functions.invoke untuk menampilkan jumlah user dan soal dengan format ringkas, plus indikator Live/Offline. Melakukan auto-refresh tiap 60 detik dan retry tiap 10 detik bila gagal.",
+    "sections": [
+      {
+        "symbol": "StatItem",
+        "startLine": 24,
+        "endLine": 44,
+        "summary": "Sub-komponen tampilan satu metrik dengan ikon, nilai, dan label."
+      },
+      {
+        "symbol": "AppStatsBar",
+        "startLine": 46,
+        "endLine": 125,
+        "summary": "Memuat statistik aplikasi secara berkala dari Edge Function dan merender indikator live beserta metrik user dan soal."
+      }
+    ]
+  },
+  "src/components/marketing/SalesProofWidget.tsx": {
+    "summary": "Widget social proof yang menampilkan pembelian terverifikasi secara bergantian. Mengambil data dari marketingApi.salesProof, menyiklus tampilan masuk/keluar tiap 5 detik dengan jeda 3 detik, dan menampilkan nama pembeli, label pembelian, serta waktu relatif; tidak menampilkan apa pun bila tidak ada entri.",
+    "sections": [
+      {
+        "symbol": "SalesProofWidget",
+        "startLine": 5,
+        "endLine": 85,
+        "summary": "Memuat entri penjualan nyata dan menampilkannya dalam kartu melayang bergiliran di pojok kiri bawah."
+      },
+      {
+        "symbol": "relativeTime",
+        "startLine": 87,
+        "endLine": 96,
+        "summary": "Mengubah timestamp menjadi teks relatif (menit/jam/hari lalu)."
+      }
+    ]
+  },
+  "src/components/ui/button.tsx": {
+    "summary": "Komponen Button berbasis @base-ui/react dengan varian gaya via class-variance-authority (variant: default, outline, secondary, ghost, destructive, link; size: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg). Mengekspor buttonVariants dan Button yang menggabungkan className dengan cn.",
+    "sections": [
+      {
+        "symbol": "buttonVariants",
+        "startLine": 6,
+        "endLine": 41,
+        "summary": "Definisi varian dan ukuran tombol dengan cva."
+      },
+      {
+        "symbol": "Button",
+        "startLine": 43,
+        "endLine": 58,
+        "summary": "Wrapper ButtonPrimitive yang menerapkan varian dan mengekspor komponen."
+      }
+    ]
+  },
+  "src/components/ui/card.tsx": {
+    "summary": "Kumpulan komponen Card shadcn/ui: Card (dengan prop size default|sm), CardHeader, CardTitle, CardDescription, CardAction, CardContent, dan CardFooter. Semuanya div ber-slot data yang menggabungkan className dengan cn untuk styling Tailwind.",
+    "sections": [
+      {
+        "symbol": "Card",
+        "startLine": 5,
+        "endLine": 21,
+        "summary": "Container kartu dengan dukungan ukuran default dan sm."
+      },
+      {
+        "symbol": "CardHeader",
+        "startLine": 23,
+        "endLine": 34,
+        "summary": "Area header kartu dengan tata letak grid."
+      },
+      {
+        "symbol": "CardTitle",
+        "startLine": 36,
+        "endLine": 47,
+        "summary": "Judul kartu."
+      },
+      {
+        "symbol": "CardDescription",
+        "startLine": 49,
+        "endLine": 57,
+        "summary": "Teks deskripsi kartu."
+      },
+      {
+        "symbol": "CardAction",
+        "startLine": 59,
+        "endLine": 70,
+        "summary": "Slot aksi di sudut kanan header kartu."
+      },
+      {
+        "symbol": "CardContent",
+        "startLine": 72,
+        "endLine": 80,
+        "summary": "Area konten utama kartu."
+      },
+      {
+        "symbol": "CardFooter",
+        "startLine": 82,
+        "endLine": 93,
+        "summary": "Area footer kartu dengan border atas."
+      }
+    ]
+  },
+  "src/components/ui/checkbox.tsx": {
+    "summary": "Komponen Checkbox berbasis @base-ui/react/checkbox dengan indikator centang lucide. Mengatur gaya state checked, disabled, dan aria-invalid, lalu menggabungkan className dengan cn dan mengekspor Checkbox.",
+    "sections": [
+      {
+        "symbol": "Checkbox",
+        "startLine": 8,
+        "endLine": 29,
+        "summary": "Wrapper CheckboxPrimitive.Root dengan indikator CheckIcon dan styling state."
+      }
+    ]
+  },
+  "src/components/ui/dialog.tsx": {
+    "summary": "Kumpulan komponen Dialog berbasis @base-ui/react/dialog: Dialog, DialogTrigger, DialogPortal, DialogClose, DialogOverlay, DialogContent (dengan prop showCloseButton), DialogHeader, DialogFooter, DialogTitle, dan DialogDescription. Menyediakan overlay blur, animasi buka/tutup, dan tombol close opsional.",
+    "sections": [
+      {
+        "symbol": "Dialog",
+        "startLine": 8,
+        "endLine": 10,
+        "summary": "Root dialog primitif."
+      },
+      {
+        "symbol": "DialogOverlay",
+        "startLine": 24,
+        "endLine": 38,
+        "summary": "Backdrop dengan blur dan animasi fade."
+      },
+      {
+        "symbol": "DialogContent",
+        "startLine": 40,
+        "endLine": 79,
+        "summary": "Popup dialog dengan portal, overlay, dan tombol close opsional."
+      },
+      {
+        "symbol": "DialogHeader",
+        "startLine": 81,
+        "endLine": 89,
+        "summary": "Header dialog."
+      },
+      {
+        "symbol": "DialogFooter",
+        "startLine": 91,
+        "endLine": 116,
+        "summary": "Footer dialog dengan opsi tombol Close."
+      },
+      {
+        "symbol": "DialogTitle",
+        "startLine": 118,
+        "endLine": 129,
+        "summary": "Judul dialog."
+      },
+      {
+        "symbol": "DialogDescription",
+        "startLine": 131,
+        "endLine": 145,
+        "summary": "Deskripsi dialog."
+      }
+    ]
+  },
+  "src/components/ui/input.tsx": {
+    "summary": "Komponen Input berbasis @base-ui/react/input dengan styling Tailwind untuk tinggi, border, placeholder, fokus, disabled, dan state invalid. Mengekspor Input.",
+    "sections": [
+      {
+        "symbol": "Input",
+        "startLine": 6,
+        "endLine": 20,
+        "summary": "Wrapper InputPrimitive dengan gaya form dan penanganan state."
+      }
+    ]
+  },
+  "src/components/ui/label.tsx": {
+    "summary": "Komponen Label berbasis elemen label HTML dengan styling Tailwind untuk teks form dan state disabled. Mengekspor Label.",
+    "sections": [
+      {
+        "symbol": "Label",
+        "startLine": 7,
+        "endLine": 20,
+        "summary": "Elemen label dengan gaya tipografi dan penanganan disabled."
+      }
+    ]
+  },
+  "src/components/ui/progress.tsx": {
+    "summary": "Komponen progress bar berbasis @base-ui/react/progress. Mengekspor Progress beserta sub-komponen ProgressTrack, ProgressIndicator, ProgressLabel, dan ProgressValue untuk menampilkan label dan nilai progres."
+  },
+  "src/components/ui/radio-group.tsx": {
+    "summary": "Komponen radio group berbasis @base-ui/react. Mengekspor RadioGroup dan RadioGroupItem untuk pemilihan satu opsi dengan indikator bulat."
+  },
+  "src/components/ui/select.tsx": {
+    "summary": "Komponen dropdown select berbasis @base-ui/react/select. Mengekspor Select, SelectTrigger, SelectContent, SelectValue, SelectGroup, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, dan SelectScrollDownButton dengan varian ukuran sm/default."
+  },
+  "src/components/ui/switch.tsx": {
+    "summary": "Komponen toggle switch berbasis @base-ui/react/switch. Mengekspor Switch dengan varian ukuran sm/default untuk mengaktifkan atau menonaktifkan sebuah opsi."
+  },
+  "src/components/ui/tabs.tsx": {
+    "summary": "Komponen tab berbasis @base-ui/react/tabs dengan dukungan orientasi horizontal/vertikal. Mengekspor Tabs, TabsList, TabsTrigger, dan TabsContent; TabsList punya varian tampilan default dan line."
+  },
+  "src/components/ui/textarea.tsx": {
+    "summary": "Komponen textarea bergaya shadcn dengan penanganan fokus, disabled, dan aria-invalid. Mengekspor Textarea sebagai input teks multi-baris."
+  },
+  "src/index.css": {
+    "summary": "Stylesheet utama Tailwind: direktif base/components/utilities serta variabel CSS tema (warna, radius) untuk mode terang dan gelap, plus aturan border dan warna latar/teks dasar body."
+  },
+  "src/lib/api.ts": {
+    "summary": "Lapisan API aplikasi di atas Supabase, memakai Edge Functions dan tabel Supabase. Mengelompokkan endpoint ke beberapa objek: authApi (register, login, google, logout, me), examsApi (generate, list, get, updateQuestion, addQuestion, deleteQuestion, reorderQuestions, regenerateQuestion, delete), questionBankApi (list, saveQuestions, delete, createExam, appendToExam), marketingApi (salesProof), dan billingApi (history, packages, checkout, checkoutCustomCredits, checkPaymentStatus). Juga mengekspor tipe (PaginatedExams, GenerateExamResponse, BillingPackage, BillingPayment, dll), konstanta tarif kredit kustom, serta ApiError untuk meneruskan pesan asli dari Edge Function.",
+    "sections": [
+      {
+        "symbol": "authApi",
+        "startLine": 156,
+        "endLine": 237,
+        "summary": "Endpoint autentikasi: register, login, google, logout, dan me, memakai supabase.auth serta menyimpan token di localStorage."
+      },
+      {
+        "symbol": "examsApi",
+        "startLine": 239,
+        "endLine": 489,
+        "summary": "Endpoint ujian: generate soal (payload atau FormData), list paginasi, get, update/add/delete/reorder/regenerate pertanyaan, dan delete ujian."
+      },
+      {
+        "symbol": "questionBankApi",
+        "startLine": 491,
+        "endLine": 549,
+        "summary": "Endpoint bank soal: list dengan filter, saveQuestions, delete, createExam, dan appendToExam."
+      },
+      {
+        "symbol": "billingApi",
+        "startLine": 557,
+        "endLine": 615,
+        "summary": "Endpoint pembayaran: history transaksi/order, packages, checkout, checkoutCustomCredits, dan checkPaymentStatus via Edge Function billing."
+      },
+      {
+        "symbol": "invokeFunction",
+        "startLine": 662,
+        "endLine": 679,
+        "summary": "Helper memanggil Supabase Edge Function dan melempar ApiError berisi pesan asli dari respons error."
+      }
+    ]
+  },
+  "src/lib/apiMappers.ts": {
+    "summary": "Modul pemetaan data mentah Supabase menjadi tipe aplikasi, sengaja tanpa impor apa pun agar bisa diuji dengan node --test. Mengekspor tipe domain (AuthUser, ExamSession, Question, BankQuestion, PaymentOrder, GenerateExamPayload, dll) serta fungsi formatUser, normalizeExam, normalizeQuestion, normalizeBankQuestion, normalizeCreditTransaction, normalizePaymentOrder, normalizeSubscriptionTier, dan payloadFromFormData (termasuk konversi file ke base64)."
+  },
+  "src/lib/auth-context.ts": {
+    "summary": "Definisi React Context autentikasi dan hook konsumennya, dipisah dari provider agar Fast Refresh aman. Mengekspor AuthContext dan useAuth; nilai konteks mencakup user, isLoading, loginWithGoogle, logout, refreshUser, dan updateUser."
+  },
+  "src/lib/auth.tsx": {
+    "summary": "Provider autentikasi React yang mengelola state user dari localStorage dan memvalidasi sesi lewat authApi.me. Mengekspor AuthProvider dengan aksi loginWithGoogle, logout, refreshUser, dan updateUser, serta menyinkronkan flag info langganan lewat session-flags."
+  },
+  "src/lib/billingReturn.ts": {
+    "summary": "Logika murni halaman kembali pembayaran (/billing/return), dapat diuji tanpa browser. Mengekspor MAX_STATUS_POLLS, resolveOrderId (menentukan order id dari query string atau penyimpanan lokal), shouldKeepPolling (berhenti saat status final), dan describeOutcome (pesan serta tone hasil pembayaran)."
+  },
+  "src/lib/examQuality.ts": {
+    "summary": "Analisis kualitas naskah ujian secara murni. Mengekspor analyzeExamQuality yang menghitung distribusi tingkat kesulitan, level kognitif, topik, estimasi durasi pengerjaan, serta peringatan soal duplikat dan ambigu."
+  },
+  "src/lib/exportExam.ts": {
+    "summary": "Ekspor naskah ujian ke berkas unduhan. Mengekspor exportExamPdf (via jsPDF) dan exportExamDocx (via docx) yang menyusun header, daftar soal, gambar ilustrasi, serta kunci jawaban dan pembahasan dengan nama file terstandar."
+  },
+  "src/lib/exportKisiKisi.ts": {
+    "summary": "Ekspor dokumen kisi-kisi ujian ke format DOCX landscape memakai library docx. Mengekspor exportKisiKisiDocx yang menyusun tabel kisi-kisi (capaian, tujuan, materi, indikator, level kognitif, kesulitan, bentuk soal), tahun pelajaran, dan kolom tanda tangan."
+  },
+  "src/lib/exportPaymentReceipt.ts": {
+    "summary": "Membuat bukti pembayaran PDF memakai jsPDF. Mengekspor exportPaymentReceipt yang hanya berjalan untuk order berstatus paid dan mencetak nomor invoice/transaksi, data pembeli, produk, jumlah kredit, serta total dalam format Rupiah."
+  },
+  "src/lib/paymentIdentifiers.ts": {
+    "summary": "Pembuat nomor identitas pembayaran yang dapat diprediksi. Mengekspor paymentInvoiceNumber (prefix INV) dan paymentTransactionNumber (prefix TRX) dengan id order yang dipad menjadi lima digit."
+  },
+  "src/lib/session-flags.ts": {
+    "summary": "Flag sesi berbasis sessionStorage untuk mengatur tampilnya dialog info langganan setelah login. Mengekspor markSubscriptionInfoPending, shouldShowSubscriptionInfo, markSubscriptionInfoSeen, dan clearSubscriptionInfoSession."
+  },
+  "src/lib/supabase.ts": {
+    "summary": "Inisialisasi klien Supabase dari environment variable Vite (URL dan anon key). Mengekspor SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseConfigured, dan klien supabase dengan persistSession serta autoRefreshToken; memperingatkan bila env belum diisi."
+  },
+  "src/lib/utils.ts": {
+    "summary": "Utilitas penggabung className. Mengekspor fungsi cn yang menggabungkan clsx dan tailwind-merge untuk menyelesaikan konflik kelas Tailwind."
+  },
+  "src/main.tsx": {
+    "summary": "Titik masuk aplikasi React. Merender komponen App ke elemen root dalam StrictMode dan memuat stylesheet index.css."
+  },
+  "src/pages/BillingReturn.tsx": {
+    "summary": "Halaman tujuan kembali dari pembayaran Mayar (/billing/return). Mengekspor default BillingReturn yang menentukan order id, memantau status pembayaran lewat billingApi.checkPaymentStatus secara berkala, menyegarkan profil saat lunas, dan menampilkan ikon serta pesan hasil memakai billingReturn. Komponen StatusIcon dan helper formatRupiah bersifat lokal."
+  },
+  "src/pages/Dashboard.tsx": {
+    "summary": "Halaman dashboard pengguna. Mengekspor default Dashboard yang menampilkan sapaan, saldo kredit, beberapa riwayat ujian terbaru lewat examsApi.list, dialog billing, dialog info langganan, serta hapus riwayat via examsApi.delete."
+  },
+  "src/pages/ExamHistory.tsx": {
+    "summary": "Halaman riwayat soal dengan paginasi. Mengekspor default ExamHistory yang memuat daftar ujian lewat examsApi.list per halaman, mengatur navigasi sebelumnya/berikutnya, dan menghapus riwayat via examsApi.delete dengan penyesuaian halaman."
+  },
+  "src/pages/GenerateExam.tsx": {
+    "summary": "Halaman wizard 3 langkah (Dasar, Materi, Kriteria) untuk membuat soal ujian otomatis lewat AI. Mengelola state fase/kelas/mapel, semester, alokasi waktu, referensi materi (AI/PDF/Manual), jenis-jenis format soal beserta jumlahnya, topik & tujuan pembelajaran, serta ilustrasi. handleGenerate memvalidasi input, menyusun payload (FormData bila unggah PDF), memanggil examsApi.generate, memperbarui saldo kredit, lalu navigasi ke /review. Menampilkan overlay progres saat proses berjalan.",
+    "sections": [
+      {
+        "symbol": "konstanta opsi",
+        "startLine": 34,
+        "endLine": 119,
+        "summary": "SUBJECT_OPTIONS_BY_FASE, COGNITIVE_LEVELS, DIFFICULTY_DISTRIBUTION, serta state wizard: selectedFase, selectedKelas, mapel, semester, timeAllocation, referenceType/Text/File, formats (id/label/active/count), topics, dan turunan totalSoal serta activeFormatCount."
+      },
+      {
+        "symbol": "progressStages & efek progres",
+        "startLine": 120,
+        "endLine": 177,
+        "summary": "Tahapan label progres, activeProgressStage, useEffect yang mengunci scroll body dan menaikkan generateProgress bertahap sampai 94%, plus toggleFormat dan updateFormatCount untuk mengubah format soal."
+      },
+      {
+        "symbol": "handleFaseChange & validasi referensi",
+        "startLine": 179,
+        "endLine": 211,
+        "summary": "kelasOptions per fase, handleFaseChange mereset kelas & mapel, dan referenceValidationError yang memeriksa file PDF (tipe & maks 10 MB) atau teks manual wajib."
+      },
+      {
+        "symbol": "navigasi & buildGenerateRequest",
+        "startLine": 213,
+        "endLine": 275,
+        "summary": "handleNext/handlePrev antar langkah, appendArray untuk serialisasi array ke FormData, dan buildGenerateRequest yang mengubah payload menjadi FormData saat referensi berupa PDF."
+      },
+      {
+        "symbol": "handleGenerate",
+        "startLine": 277,
+        "endLine": 375,
+        "summary": "Validasi lengkap (topik, referensi, format aktif, jumlah 1-100, alokasi waktu), memanggil examsApi.generate, updateUser saldo kredit, lalu navigate ke /review dengan state exam & questions; menangani error validasi/401 dengan pesan."
+      },
+      {
+        "symbol": "render wizard",
+        "startLine": 377,
+        "endLine": 1092,
+        "summary": "JSX overlay progres, stepper, banner error, dan tiga langkah formulir (dasar ujian, materi/referensi, kriteria format & topik) beserta tombol Lanjut/Kembali/Buat Soal."
+      }
+    ]
+  },
+  "src/pages/Login.tsx": {
+    "summary": "Halaman masuk/daftar memakai Google Identity Services. Memuat script Google, menginisialisasi tombol login dengan VITE_GOOGLE_CLIENT_ID, memanggil loginWithGoogle dari useAuth lalu mengarahkan ke beranda. Menampilkan configError bila client id belum dikonfigurasi, dan menerjemahkan error API (validasi, Supabase tak merespons) menjadi pesan ramah. Bila sudah login, dialihkan ke '/'."
+  },
+  "src/pages/QuestionBank.tsx": {
+    "summary": "Halaman Bank Soal pribadi: memuat daftar soal (questionBankApi.list) dan riwayat ujian (examsApi.list), menyediakan filter subject/class_phase/topic/difficulty dan pencarian teks, serta pemilihan banyak soal (Set selected). Aksi utama: hapus soal, buat paket baru dari soal terpilih (createExam lalu navigasi ke /review), atau menggabungkan soal terpilih ke riwayat ujian lama (appendToExam) dengan laporan jumlah ditambah/duplikat. Komponen FilterSelect dipakai untuk dropdown filter."
+  },
+  "src/pages/ReviewExam.tsx": {
+    "summary": "Halaman review & edit hasil generate soal. Memuat state dari location.state atau query ?exam= via examsApi.get. Menyediakan mode edit dengan draft soal, autosave ter-debounce, dan peringatan beforeunload; aksi struktural (tambah, hapus, urutkan, regenerasi soal) langsung sinkron ke server. Termasuk simpan soal terpilih ke Bank Soal, analisis kualitas soal (analyzeExamQuality), ekspor PDF (selalu) dan DOCX/kisi-kisi (khusus premium via isPremiumActive + BillingDialog).",
+    "sections": [
+      {
+        "symbol": "helper & QualityDistribution",
+        "startLine": 36,
+        "endLine": 78,
+        "summary": "questionsEqual (banding field editable), nextOptionKey (kunci opsi berikutnya), dan komponen QualityDistribution untuk menampilkan distribusi kualitas soal."
+      },
+      {
+        "symbol": "state & pemuatan data",
+        "startLine": 80,
+        "endLine": 152,
+        "summary": "loadState (loading/ready/error), isPremiumActive, dan useEffect yang mengambil data soal dari server ketika dibuka lewat query exam."
+      },
+      {
+        "symbol": "edit draft",
+        "startLine": 154,
+        "endLine": 218,
+        "summary": "toggleExpand, updateDraftQuestion/Option, addDraftOption, removeDraftOption (menjaga konsistensi kunci jawaban), serta startEditMode dan cancelEditMode."
+      },
+      {
+        "symbol": "saveEdits & autosave",
+        "startLine": 220,
+        "endLine": 318,
+        "summary": "saveEdits menyimpan hanya soal yang berubah secara berurutan fail-fast dengan pesan nomor soal gagal; useEffect autosave 1,5 detik dan peringatan sebelum menutup tab saat masih ada draft."
+      },
+      {
+        "symbol": "aksi struktural",
+        "startLine": 320,
+        "endLine": 454,
+        "summary": "applyServerQuestions menyinkronkan state, lalu handleAddQuestion, handleDeleteQuestion, handleMoveQuestion (reorderQuestions), pemilihan & penyimpanan ke bank soal, dan handleRegenerate yang memotong kredit serta menyegarkan user."
+      },
+      {
+        "symbol": "render & ekspor",
+        "startLine": 456,
+        "endLine": 1097,
+        "summary": "JSX disclaimer, daftar soal dengan mode lihat/edit, panel analisis kualitas & peringatan, sidebar ekspor (exportExamPdf, exportExamDocx premium, exportKisiKisiDocx premium), dialog billing, dan konfirmasi hapus soal."
+      }
+    ]
+  },
+  "src/pages/TransactionHistory.tsx": {
+    "summary": "Halaman riwayat transaksi & kredit. Memuat data via billingApi.history (transactions dan orders) dan useAuth untuk saldo. Menampilkan kartu ringkasan saldo, total kredit masuk, dan kredit terpakai, daftar invoice pembayaran dengan status (pending/lunas/kedaluwarsa/gagal/dibatalkan) beserta nomor invoice/transaksi, tombol unduh bukti pembayaran (exportPaymentReceipt), serta daftar transaksi kredit dengan label/deskripsi. Helper: formatRupiah, formatDate, packageName, transactionLabel/Description, safeCheckoutUrl."
+  },
+  "supabase/tests/api-mapping.test.mjs": {
+    "summary": "Test Node untuk fungsi pemetaan data mentah Supabase ke tipe aplikasi di src/lib/apiMappers.ts. Menguji formatUser, normalizeBankQuestion, normalizeCreditTransaction, normalizeExam, normalizePaymentOrder, normalizeQuestion, dan payloadFromFormData. Fokus pada nilai tak terduga (tier asing menjadi free, saldo kredit selalu angka, status tak dikenal tidak dianggap lunas) supaya UI tidak menampilkan data salah tanpa error. Dijalankan lewat npm run test:api."
+  },
+  "supabase/tests/billing-return.test.mjs": {
+    "summary": "Test alur kembali dari pembayaran Mayar. Menguji resolveOrderId (membaca order_id dari query atau fallback penyimpanan browser), shouldKeepPolling (batas polling & status final), describeOutcome (pesan/tone per status), buildBillingReturnUrl (URL /billing/return dengan order id), dan shouldReconcileOrder (order pending/expired dengan invoice tetap direkonsiliasi demi keamanan kredit). Fungsi diimpor dari src/lib/billingReturn.ts dan supabase/functions/_shared/billing.ts. Dijalankan lewat npm run test:billing-return."
+  },
+  "supabase/tests/billing-status.test.mjs": {
+    "summary": "Test gerbang keputusan pembayaran: mapProviderStatus yang menerjemahkan status Mayar menjadi paid/pending/expired/failed/cancelled, dengan fail-safe ke pending untuk status tak dikenal. Juga memverifikasi daftar billingPackages server tidak menyimpang dari salinan klien di src/lib/api.ts, dan INVOICE_TTL_MINUTES server sama dengan default TTL di migration p1_billing_lifecycle.sql. Dijalankan lewat npm run test:billing."
+  },
+  "supabase/tests/exam-quality.test.mjs": {
+    "summary": "Test analisis kualitas paket ujian lewat analyzeExamQuality dari src/lib/examQuality.ts. Memverifikasi distribusi kesulitan, level kognitif, dan topik; deteksi pertanyaan duplikat setelah normalisasi spasi/huruf; peringatan kunci tidak valid, pilihan kosong, dan pilihan identik; estimasi menit berdasarkan jenis & kesulitan; serta estimasi minimum aman untuk paket kosong."
+  },
+  "supabase/tests/harness.sql": {
+    "summary": "Harness SQL yang membuat stub schema bawaan Supabase (auth, storage, tabel auth.users, fungsi auth.uid(), storage.buckets/objects) plus role anon/authenticated/service_role beserta grant dan default privileges. Dipakai agar migration aplikasi bisa dijalankan di Postgres lokal (PGlite) untuk test. pgcrypto sengaja tidak dibuat karena PGlite sudah menyediakan gen_random_uuid()."
+  },
+  "supabase/tests/p0-security.test.mjs": {
+    "summary": "Test hotfix P0 Security dengan menjalankan schema awal + migration p0_security_hotfix di PGlite, lalu menyimulasikan jalur serangan sebagai role authenticated vs service_role. Memverifikasi pengguna tidak bisa menaikkan kredit/tier sendiri, credit_transactions tidak bisa ditulis klien, RLS payment_orders (hanya pemilik bisa baca, klien tidak bisa insert), serta invarian transaksional RPC fulfill/spend/refund. Dijalankan lewat npm run test:security."
+  },
+  "supabase/tests/p1-billing-lifecycle.test.mjs": {
+    "summary": "Test siklus hidup billing P1 dengan menjalankan schema + migration P0 + P1 di PGlite. Memverifikasi premium yang lewat masa berlaku turun kembali ke free tanpa menghapus kredit, order pending kedaluwarsa ditutup, order layak rekonsiliasi dapat ditemukan, uang yang sudah masuk tetap diberikan meski order sempat expired, langganan aktif diperpanjang bukan direset, dan klien tidak bisa memanggil fungsi sweep. Dijalankan lewat npm run test:billing-lifecycle."
+  },
+  "supabase/tests/payment-identifiers.test.mjs": {
+    "summary": "Test format identifier pembayaran di src/lib/paymentIdentifiers.ts: paymentInvoiceNumber memakai awalan INV dengan minimal lima digit, paymentTransactionNumber memakai awalan TRX, dan id tidak valid (negatif/NaN) jatuh ke nomor aman 00000."
+  },
+  "supabase/tests/question-bank.test.mjs": {
+    "summary": "Test bank soal dengan menjalankan schema + migration question_editor & question_bank di PGlite. Memverifikasi append_bank_to_exam menambahkan soal dan menandai duplikat, penomoran order tetap benar, serta isolasi antar pengguna: user tidak bisa append ke ujian user lain (forbidden) maupun menghapus bank milik user lain (not_found)."
+  },
+  "supabase/tests/question-editor.test.mjs": {
+    "summary": "Test editor soal dengan menjalankan schema + migration question_editor di PGlite. Memverifikasi reorder_exam_questions menormalkan urutan, delete_exam_question menutup celah nomor, dan regenerate_question_with_credit idempoten: memotong kredit hanya sekali walau dipanggil ulang dengan idempotency key yang sama (mengembalikan reused=true)."
+  },
+  "supabase/tests/trust-polish.test.mjs": {
+    "summary": "Test statis (membaca source) untuk menjaga kepercayaan & penyelesaian UI. Memverifikasi GenerateExam.tsx menyediakan kelas Fase D (7,8,9), SalesProofWidget tidak lagi memakai daftar transaksi fiktif dan membaca marketingApi.salesProof(), endpoint sales-proof hanya membaca order paid dengan nama disamarkan dan select kolom terbatas (bukan '*'), serta validasi referensi/format sebelum memanggil AI."
+  },
+  "SUPABASE_DEPLOY.md": {
+    "summary": "Panduan deploy Supabase untuk Soalify: membuat project, menjalankan migration berurutan (schema awal, P0 security hotfix, P1 billing lifecycle, create_exam_transaction_function), verifikasi lokal opsional, konfigurasi secret, endpoint billing-reconcile, dan daftar tes flow utama. Menekankan P0 wajib dijalankan karena menutup celah eskalasi kredit lewat Data API dan checkout tanpa pembayaran nyata."
+  },
+  "tailwind.config.js": {
+    "summary": "Konfigurasi Tailwind CSS: darkMode berbasis class, content mencakup src/pages/components/app, container terpusat, dan token warna/border-radius berbasis CSS variable HSL (shadcn-style) plus animasi accordion. Plugin tailwindcss-animate."
+  },
+  "tsconfig.app.json": {
+    "summary": "Konfigurasi TypeScript untuk kode aplikasi (src): target ES2023, JSX react-jsx, moduleResolution bundler, noEmit, strict lint (noUnusedLocals/Parameters, noFallthroughCasesInSwitch), dan alias path @/* ke ./src/*."
+  },
+  "tsconfig.json": {
+    "summary": "Konfigurasi TypeScript root yang hanya mereferensikan project tsconfig.app.json dan tsconfig.node.json (solution-style), dengan alias @/* ke ./src/*."
+  },
+  "tsconfig.node.json": {
+    "summary": "Konfigurasi TypeScript untuk tooling Node (vite.config.ts): target ES2023, types node, moduleResolution bundler, noEmit, dan lint ketat. Mencakup hanya vite.config.ts."
+  },
+  "vercel.json": {
+    "summary": "Konfigurasi deploy Vercel: build lewat npm run build, output ke dist, dan rewrite semua path ke /index.html untuk mendukung routing SPA."
+  },
+  "vite.config.ts": {
+    "summary": "Konfigurasi Vite: plugin @vitejs/plugin-react dan alias @ yang diarahkan ke folder ./src."
+  },
+  "supabase/functions/app-stats/index.ts": {
+    "summary": "Supabase Edge Function `app-stats` (HTTP GET) yang mengembalikan statistik publik aplikasi. Memakai admin client untuk menghitung jumlah baris tabel `profiles` dan `questions` (count exact), lalu mengembalikan JSON { live, total_users, total_questions }. Bila query gagal, tetap membalas status 200 dengan angka 0 dan pesan error agar halaman tetap tampil. Memakai helper CORS dari _shared/cors.ts."
+  },
+  "supabase/functions/billing-checkout/index.ts": {
+    "summary": "Supabase Edge Function `billing-checkout` (POST) untuk membuat order pembayaran berstatus pending beserta invoice Mayar. Mengautentikasi user lewat client anon, memvalidasi input paket/kredit via resolveCheckoutInput (paket langganan atau top-up kustom), memvalidasi nama/email/WhatsApp, lalu membaca profil dari tabel `profiles`. Mengelola tabel `payment_orders`: menyapu order pending kedaluwarsa jadi expired, memakai ulang order pending dengan checkout_url, atau membuat order baru + invoice Mayar dan menyimpan provider_order_id/checkout_url. Tidak memberi kredit; hanya billing-webhook yang memenuhi. Output: package, order, payment, user, flag reused.",
+    "sections": [
+      {
+        "symbol": "Deno.serve",
+        "startLine": 13,
+        "endLine": 174,
+        "summary": "Handler utama: auth, resolve paket, validasi customer, expire order lama, reuse/buat order di `payment_orders`, panggil createMayarInvoice, simpan invoice, balas JSON order+payment+user."
+      },
+      {
+        "symbol": "expireStaleOrders",
+        "startLine": 198,
+        "endLine": 205,
+        "summary": "Menandai order `payment_orders` milik user yang masih pending dan melewati TTL menjadi status expired agar tidak menumpuk."
+      },
+      {
+        "symbol": "buildRedirectUrl",
+        "startLine": 207,
+        "endLine": 220,
+        "summary": "Menyusun URL kembali setelah pembayaran dari env APP_BASE_URL atau header Origin/Referer, memakai buildBillingReturnUrl."
+      }
+    ]
+  },
+  "supabase/functions/billing-payment-status/index.ts": {
+    "summary": "Supabase Edge Function `billing-payment-status` (POST) untuk memeriksa status satu order saat frontend kembali dari Mayar. Mengautentikasi user, membaca profil dari `profiles` dan order dari `payment_orders` (harus milik user). Bertindak sebagai jaring pengaman webhook: bila order masih perlu direkonsiliasi (pending/expired) dan punya provider_order_id, fungsi menanyakan status asli ke Mayar via getMayarInvoice lalu memanggil RPC idempoten `fulfill_payment_order`. Output: message deskriptif, order, payment, dan user terbaru. Mencegah pemberian kredit ganda."
+  },
+  "supabase/functions/billing-reconcile/index.ts": {
+    "summary": "Supabase Edge Function `billing-reconcile` (POST) sebagai jaring pengaman terakhir bila webhook Mayar tidak sampai, dipanggil cron/admin dengan header x-reconcile-token (fail-closed bila token BILLING_RECONCILE_TOKEN belum diset, dibandingkan waktu-tetap). Menjalankan sweep RPC `expire_subscriptions` dan `expire_stale_payment_orders`, lalu RPC `orders_for_reconciliation` untuk mengambil kandidat order. Tiap kandidat diverifikasi ulang ke Mayar (getMayarInvoice) dan dipenuhi lewat RPC idempoten `fulfill_payment_order`. Output ringkasan: checked, fulfilled, expired, still_pending, skipped, errors.",
+    "sections": [
+      {
+        "symbol": "Deno.serve",
+        "startLine": 19,
+        "endLine": 121,
+        "summary": "Handler: verifikasi token, sweep langganan/order kedaluwarsa, ambil kandidat via RPC, loop verifikasi ke Mayar + fulfill, kumpulkan ringkasan."
+      },
+      {
+        "symbol": "verifySchedulerToken",
+        "startLine": 129,
+        "endLine": 143,
+        "summary": "Memvalidasi token penjadwal dari header x-reconcile-token atau query token; menolak dengan 401/503 bila tidak cocok."
+      },
+      {
+        "symbol": "timingSafeEqual",
+        "startLine": 146,
+        "endLine": 157,
+        "summary": "Perbandingan string waktu-tetap agar token tidak dapat ditebak lewat timing."
+      }
+    ]
+  },
+  "supabase/functions/billing-webhook/index.ts": {
+    "summary": "Supabase Edge Function `billing-webhook` (POST) menerima event `payment.received` dari Mayar. Payload webhook tidak dipercaya; fungsi memverifikasi shared secret opsional (MAYAR_WEBHOOK_SECRET) lebih dulu, lalu mencari order di tabel `payment_orders` berdasarkan provider_order_id atau order id dari extraData. Sumber kebenaran adalah hasil getMayarInvoice ke API Mayar; pemberian benefit dilakukan RPC idempoten `fulfill_payment_order` (lock baris). Mengembalikan 200 untuk order tak dikenal (agar tidak diulang) dan 500 untuk kegagalan sementara (agar Mayar mengulang)."
+  },
+  "supabase/functions/exam-generate/index.ts": {
+    "summary": "Supabase Edge Function `exam-generate` (POST) untuk membuat paket soal ujian dengan AI. Mengautentikasi user, memvalidasi payload (kurikulum, jenis ujian, fase, mapel, semester, alokasi waktu, distribusi LOTS/MOTS/HOTS harus 100%, topik, format), dan memastikan saldo kredit cukup. Memilih provider AI via selectAiProvider, memanggil generateQuestions dan generateCapaianPembelajaran, lalu attachIllustrationImages yang mengunggah gambar ke bucket storage `question-illustrations`. Menyimpan semuanya lewat RPC `create_exam_with_questions` yang juga memotong kredit (tabel `profiles`, `exam_sessions`, `questions`). Output: exam, questions, credits_remaining. Error AI dipetakan ke 503/422 dengan debug_url.",
+    "sections": [
+      {
+        "symbol": "Deno.serve",
+        "startLine": 5,
+        "endLine": 167,
+        "summary": "Handler utama: auth, validasi payload, cek kredit, generate soal + capaian, upload ilustrasi ke storage, panggil RPC create_exam_with_questions, kembalikan hasil."
+      },
+      {
+        "symbol": "validatePayload",
+        "startLine": 169,
+        "endLine": 224,
+        "summary": "Memvalidasi field wajib, alokasi waktu, level kognitif, distribusi kesulitan (total 100%), topik, dan format soal sebelum generate."
+      }
+    ]
+  },
+  "supabase/functions/question-regenerate/index.ts": {
+    "summary": "Supabase Edge Function `question-regenerate` (POST) untuk membuat ulang satu soal. Input: question_id, instruction opsional, idempotency_key. Mengautentikasi user, membaca profil dari `profiles`, mengambil soal lama beserta `exam_sessions` (verifikasi kepemilikan), memastikan saldo cukup (biaya 1 kredit), menyusun payload berisi satu soal yang mewarisi konteks ujian + jenis soal lama, memanggil generateQuestions, lalu menyimpan lewat RPC `regenerate_question_with_credit` yang memotong kredit secara atomik dan idempoten. Output: question baru dan credits_remaining. Error kredit/kepemilikan dipetakan ke 402/403.",
+    "sections": [
+      {
+        "symbol": "Deno.serve",
+        "startLine": 17,
+        "endLine": 121,
+        "summary": "Handler: auth, validasi question_id, cek profil & kepemilikan soal, cek kredit, generate soal pengganti, panggil RPC regenerate_question_with_credit."
+      },
+      {
+        "symbol": "buildRegeneratePayload",
+        "startLine": 125,
+        "endLine": 157,
+        "summary": "Menyusun GenerateExamPayload berisi tepat satu soal, mewarisi metadata ujian dan tipe soal lama, menempelkan instruksi guru ke tujuan topik."
+      }
+    ]
+  },
+  "supabase/functions/sales-proof/index.ts": {
+    "summary": "Supabase Edge Function `sales-proof` (HTTP GET) menyajikan social proof anonim untuk landing page. Memakai admin client membaca tabel `payment_orders` dengan status `paid`, paid_at dalam 30 hari terakhir, urut terbaru, maksimal 5 entri (kolom customer_name, order_type, package_snapshot, credits, paid_at, fulfilled_at). Nama dianonimkan menjadi nama depan + inisial dan label pembelian disusun dari snapshot paket/kredit. Bila query gagal, mengembalikan entries kosong agar tidak membocorkan detail internal."
+  },
+  "supabase/functions/_shared/ai.ts": {
+    "summary": "Modul bersama `_shared/ai.ts` untuk pembuatan soal ujian dengan AI (OpenAI dan Gemini). Mengekspor tipe GenerateExamPayload, Profile, dan GeneratedQuestion, serta fungsi totalQuestions, selectAiProvider, generateQuestions (memecah format jadi batch per request), generateCapaianPembelajaran, dan attachIllustrationImages (membuat gambar via OpenAI images + upload). Berisi buildPrompt (instruksi + aturan distribusi kesulitan/kognitif), schema JSON, validateQuestions (jumlah & field wajib, opsi PG/PGK), shuffleOptions, cleanAnswer, dan generateIllustration. Provider premium (OpenAI) untuk user premium aktif, sisanya Gemini; key dibaca dari env Edge Function.",
+    "sections": [
+      {
+        "symbol": "generateQuestions",
+        "startLine": 56,
+        "endLine": 68,
+        "summary": "Memilih provider, memecah formats menjadi batch (AI_MAX_QUESTIONS_PER_REQUEST), lalu mengumpulkan soal dari tiap batch."
+      },
+      {
+        "symbol": "generateCapaianPembelajaran",
+        "startLine": 72,
+        "endLine": 92,
+        "summary": "Menghasilkan kolom Capaian Pembelajaran per topik (non-kritis, fallback string kosong bila gagal) via OpenAI atau Gemini."
+      },
+      {
+        "symbol": "generateQuestionBatch",
+        "startLine": 218,
+        "endLine": 232,
+        "summary": "Menjalankan generate (OpenAI/Gemini) hingga 2 percobaan lalu memvalidasi output soal."
+      },
+      {
+        "symbol": "attachIllustrationImages",
+        "startLine": 234,
+        "endLine": 262,
+        "summary": "Bila include_illustration aktif, membuat gambar hanya untuk sebagian soal Pilihan Ganda (maks AI_MAX_ILLUSTRATIONS_PER_EXAM) dan mengunggahnya lewat callback uploadImage."
+      },
+      {
+        "symbol": "selectAiProvider",
+        "startLine": 50,
+        "endLine": 54,
+        "summary": "Memilih provider AI: premium untuk user premium yang belum kedaluwarsa, free untuk lainnya, dari env AI_PREMIUM_PROVIDER/AI_FREE_PROVIDER."
+      },
+      {
+        "symbol": "validateQuestions",
+        "startLine": 536,
+        "endLine": 574,
+        "summary": "Memeriksa jumlah soal sesuai permintaan dan field wajib, memastikan opsi ada untuk PG/PGK, mengacak opsi, dan membersihkan kunci jawaban."
+      },
+      {
+        "symbol": "buildPrompt",
+        "startLine": 431,
+        "endLine": 491,
+        "summary": "Menyusun prompt JSON berisi instruksi, konteks ujian, topik, format, target distribusi kesulitan, dan aturan penulisan soal."
+      },
+      {
+        "symbol": "shuffleOptions",
+        "startLine": 625,
+        "endLine": 664,
+        "summary": "Mengacak urutan opsi jawaban dan menyesuaikan kunci (termasuk PGK multi-jawaban) agar posisi kunci tersebar."
+      },
+      {
+        "symbol": "calculateDifficultyTargets",
+        "startLine": 701,
+        "endLine": 731,
+        "summary": "Menghitung target jumlah soal LOTS/MOTS/HOTS per batch dari persentase distribusi dan total soal."
+      }
+    ]
+  },
+  "supabase/functions/_shared/billing.ts": {
+    "summary": "Modul bersama `_shared/billing.ts` untuk logika billing: daftar paket langganan (premium-6m, premium-12m) dan aturan top-up kustom (rate tetap per kredit, min/max, id custom-topup). Mengekspor resolveCheckoutInput untuk menerjemahkan body checkout menjadi paket/order tervalidasi, mapProviderStatus untuk memetakan status Mayar ke status internal (paid/expired/failed/cancelled/pending secara ketat), shouldReconcileOrder untuk menentukan order pending/expired yang perlu dicek ulang, INVOICE_TTL_MINUTES (24 jam), dan buildBillingReturnUrl untuk URL kembali berisi order_id."
+  },
+  "supabase/functions/_shared/cors.ts": {
+    "summary": "Modul bersama `_shared/cors.ts` menyediakan corsHeaders (Access-Control-Allow-Origin *, headers authorization/x-client-info/apikey/content-type, methods GET/POST/PUT/DELETE/OPTIONS), helper jsonResponse untuk membalas JSON dengan status dan header CORS, serta handleOptions yang menjawab preflight OPTIONS. Dipakai oleh seluruh Edge Function agar konsisten menangani CORS."
+  },
+  "supabase/functions/_shared/mayar.ts": {
+    "summary": "Modul bersama `_shared/mayar.ts` sebagai klien API Mayar (docs.mayar.id) yang hanya berjalan di sisi server. Mengekspor getMayarApiKey (baca env MAYAR_API_KEY), getMayarBaseUrl (production/sandbox via MAYAR_MODE), createMayarInvoice (POST /invoice/create, mengembalikan id invoice), dan getMayarInvoice (GET /invoice/{id}, sumber kebenaran status pembayaran). mayarFetch menambahkan Authorization Bearer, timeout 15 detik via AbortController, dan menerjemahkan error HTTP menjadi pesan. API key tidak pernah dikirim ke klien."
+  },
+  "supabase/functions/_shared/supabase.ts": {
+    "summary": "Modul bersama `_shared/supabase.ts` untuk membuat klien Supabase di Edge Functions. Mengekspor getSupabaseUrl, getAnonKey (env SUPABASE_ANON_KEY atau kunci publik dari SUPABASE_PUBLISHABLE_KEYS), getServiceRoleKey (env SERVICE_ROLE_KEY/SUPABASE_SERVICE_ROLE_KEY atau SUPABASE_SECRET_KEYS), createUserClient (anon + header Authorization dari request, untuk verifikasi user), dan createAdminClient (service role, tanpa persist session). Semua nilai dibaca dari environment function, tidak ada kredensial yang di-hardcode."
+  }
+}
