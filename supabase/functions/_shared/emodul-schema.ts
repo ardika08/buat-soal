@@ -41,11 +41,14 @@ export const EMODUL_MIN_SUBCHAPTERS = 1;
 export const EMODUL_MAX_SUBCHAPTERS = 6;
 export const EMODUL_MAX_EXERCISE_SHARE = 60;
 
-/** Biaya sementara: 1 kredit per subbab (aturan final ditetapkan server). */
-export const EMODUL_CREDIT_PER_SUBBAB = 1;
+/** Biaya generate: 5 kredit per BAB ditambah 5 kredit per submateri. */
+export const EMODUL_CREDIT_PER_CHAPTER = 5;
+export const EMODUL_CREDIT_PER_SUBCHAPTER = 5;
 
 export function emodulCreditCost(payload: GenerateEModulPayload): number {
-  const cost = Number(payload.topics?.length) * Number(payload.sub_chapters) * EMODUL_CREDIT_PER_SUBBAB;
+  const chapters = Number(payload.topics?.length);
+  const subChapters = Number(payload.sub_chapters);
+  const cost = chapters * (EMODUL_CREDIT_PER_CHAPTER + subChapters * EMODUL_CREDIT_PER_SUBCHAPTER);
   return Number.isFinite(cost) ? Math.max(1, Math.trunc(cost)) : 1;
 }
 

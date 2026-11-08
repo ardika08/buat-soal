@@ -69,9 +69,10 @@ test("jumlah bab/subbab dan porsi latihan dibatasi", () => {
   assert.match(validateGeneratePayload({ ...basePayload, exercise_share: 61 }), /latihan/i);
 });
 
-test("biaya kredit = bab x subbab, minimal 1", () => {
-  assert.equal(emodulCreditCost(basePayload), 2);
-  assert.equal(emodulCreditCost({ ...basePayload, sub_chapters: 1 }), 1);
+test("biaya generate = 5 kredit per BAB + 5 kredit per submateri", () => {
+  assert.equal(emodulCreditCost(basePayload), 15);
+  assert.equal(emodulCreditCost({ ...basePayload, sub_chapters: 1 }), 10);
+  assert.equal(emodulCreditCost({ ...basePayload, topics: Array(5).fill(basePayload.topics[0]), chapters: 5 }), 75);
 });
 
 test("perkiraan latihan per bab mengikuti porsi", () => {

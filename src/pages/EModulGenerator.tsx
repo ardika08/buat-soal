@@ -74,7 +74,8 @@ const INITIAL_CONFIG: EModulConfig = {
  * Estimasi biaya e-modul di klien: 1 kredit per bagian pengembangan.
  * Server menegakkan aturan yang sama; estimasi ini hanya untuk tampilan.
  */
-const EMODUL_COST_PER_SUBBAB = 1;
+const EMODUL_COST_PER_CHAPTER = 5;
+const EMODUL_COST_PER_SUBCHAPTER = 5;
 
 export default function EModulGenerator() {
   const navigate = useNavigate();
@@ -109,7 +110,9 @@ export default function EModulGenerator() {
   const effectiveSubject = config.manualSubject.trim() || config.subject;
 
   const creditsBalance = user?.credits_balance ?? 0;
-  const estimatedCost = config.topics.length * config.subChapters * EMODUL_COST_PER_SUBBAB;
+  const estimatedCost = config.topics.length * (
+      EMODUL_COST_PER_CHAPTER + config.subChapters * EMODUL_COST_PER_SUBCHAPTER
+    );
   const isInsufficientCredits = estimatedCost > creditsBalance;
 
   const addTopic = () => update("topics", [...config.topics, { topik: "", capaian: "" }]);
@@ -484,7 +487,7 @@ export default function EModulGenerator() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-500">Estimasi Biaya</dt>
+                  <dt className="text-slate-500">Estimasi Biaya ({EMODUL_COST_PER_CHAPTER} kredit/BAB + {EMODUL_COST_PER_SUBCHAPTER} kredit/submateri)</dt>
                   <dd className="font-medium text-slate-800">{estimatedCost} kredit</dd>
                 </div>
 
