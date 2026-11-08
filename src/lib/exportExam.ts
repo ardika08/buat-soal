@@ -13,6 +13,7 @@ import {
   WidthType,
 } from "docx";
 import { type ExamSession, type Question } from "@/lib/api";
+import { type SchoolLetterhead } from "@/lib/schoolLetterhead";
 
 const saveBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -130,7 +131,11 @@ const imageToDataUrl = async (question: Question) => {
   return await blobToDataUrl(await response.blob());
 };
 
-export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
+export async function exportExamPdf(
+  exam: ExamSession,
+  questions: Question[],
+  letterhead?: SchoolLetterhead | null,
+) {
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -155,6 +160,21 @@ export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
       y += gap;
     });
   };
+
+  if (letterhead?.school_name.trim()) {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.text(letterhead.school_name.trim().toUpperCase(), pageWidth / 2, y, { align: "center" });
+    y += 6;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    for (const line of [letterhead.address, [letterhead.phone, letterhead.email].filter(Boolean).join(" · ")].filter(Boolean)) {
+      pdf.text(line, pageWidth / 2, y, { align: "center", maxWidth });
+      y += 4;
+    }
+    pdf.line(margin, y + 1, pageWidth - margin, y + 1);
+    y += 8;
+  }
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(14);
@@ -215,7 +235,11 @@ export async function exportExamPdf(exam: ExamSession, questions: Question[]) {
   pdf.save(filename(exam, "pdf"));
 }
 
-export async function exportExamDocx(exam: ExamSession, questions: Question[]) {
+export async function exportExamDocx(
+  exam: ExamSession,
+  questions: Question[],
+  letterhead?: SchoolLetterhead | null,
+) {
   const metaRows = [
     ["Mata Pelajaran", exam.subject],
     ["Fase / Kelas", exam.class_phase],
@@ -288,6 +312,16 @@ export async function exportExamDocx(exam: ExamSession, questions: Question[]) {
       {
         properties: {},
         children: [
+          ...(letterhead?.school_name.trim()
+            ? [
+                new Paragraph({ text: letterhead.school_name.trim().toUpperCase(), heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                ...(letterhead.address ? [new Paragraph({ text: letterhead.address, alignment: AlignmentType.CENTER })] : []),
+                ...([letterhead.phone, letterhead.email].filter(Boolean).length
+                  ? [new Paragraph({ text: [letterhead.phone, letterhead.email].filter(Boolean).join(" · "), alignment: AlignmentType.CENTER })]
+                  : []),
+                new Paragraph({ text: "________________________________________________________________", alignment: AlignmentType.CENTER }),
+              ]
+            : []),
           new Paragraph({
             text: exam.exam_type.toUpperCase(),
             heading: HeadingLevel.TITLE,

@@ -19,6 +19,7 @@ import { exportExamDocx, exportExamPdf } from "@/lib/exportExam";
 import { exportKisiKisiDocx } from "@/lib/exportKisiKisi";
 import { analyzeExamQuality, type QualityDistributionItem } from "@/lib/examQuality";
 import { HOME_PATH } from "@/lib/routes";
+import { loadSchoolLetterhead, saveSchoolLetterhead, type SchoolLetterhead } from "@/lib/schoolLetterhead";
 
 interface ReviewState {
   examId: number;
@@ -109,6 +110,9 @@ export default function ReviewExam() {
   );
   const [isExportingKisi, setIsExportingKisi] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [includeLetterhead, setIncludeLetterhead] = useState(true);
+  const [letterhead, setLetterhead] = useState<SchoolLetterhead>(() => loadSchoolLetterhead());
   // Aksi struktural (tambah/hapus/urut/regenerasi) langsung ke server, tidak lewat
   // draft — supaya id soal baru dan nomor urut selalu konsisten dengan database.
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -480,6 +484,14 @@ export default function ReviewExam() {
   const loadedState = loadState.data;
   const { exam, questions, creditsRemaining } = loadedState;
   const visibleQuestions = isEditMode ? draftQuestions : questions;
+  const activeLetterhead = includeLetterhead && letterhead.school_name.trim() ? letterhead : null;
+  const updateLetterhead = (field: keyof SchoolLetterhead, value: string) => {
+    setLetterhead((current) => {
+      const next = { ...current, [field]: value };
+      saveSchoolLetterhead(next);
+      return next;
+    });
+  };
   const quality = analyzeExamQuality(exam, visibleQuestions);
 
   return (
@@ -958,12 +970,15 @@ export default function ReviewExam() {
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Ekspor Dokumen</h3>
 
             <div className="space-y-3">
-              <Button onClick={() => void exportExamPdf(exam, visibleQuestions)} className="w-full justify-start bg-slate-100 text-slate-800 hover:bg-slate-200">
+              <Button onClick={() => setPreviewOpen(true)} variant="outline" className="w-full justify-start">
+                <BookOpen className="w-4 h-4 mr-2" /> Pratinjau Dokumen
+              </Button>
+              <Button onClick={() => void exportExamPdf(exam, visibleQuestions, activeLetterhead)} className="w-full justify-start bg-slate-100 text-slate-800 hover:bg-slate-200">
                 <FileDown className="w-4 h-4 mr-2" /> Simpan sebagai .PDF
               </Button>
 
               {isPremiumActive ? (
-                <Button onClick={() => void exportExamDocx(exam, visibleQuestions)} className="w-full justify-start bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                <Button onClick={() => void exportExamDocx(exam, visibleQuestions, activeLetterhead)} className="w-full justify-start bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100">
                   <Download className="w-4 h-4 mr-2" /> Ekspor .DOCX (Word)
                 </Button>
               ) : (
@@ -1030,6 +1045,51 @@ export default function ReviewExam() {
           </div>
         </div>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Pratinjau Dokumen Soal</DialogTitle>
+            <DialogDescription>Periksa kop sekolah dan tampilan soal sebelum mengunduh.</DialogDescription>
+          </DialogHeader>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" checked={includeLetterhead} onChange={(event) => setIncludeLetterhead(event.target.checked)} />
+            Sertakan kop sekolah
+          </label>
+          {includeLetterhead && (
+            <div className="grid gap-3 rounded-xl border bg-slate-50 p-4 sm:grid-cols-2">
+              <Input aria-label="Nama sekolah" placeholder="Nama sekolah" value={letterhead.school_name} onChange={(event) => updateLetterhead("school_name", event.target.value)} />
+              <Input aria-label="Alamat sekolah" placeholder="Alamat sekolah" value={letterhead.address} onChange={(event) => updateLetterhead("address", event.target.value)} />
+              <Input aria-label="Telepon sekolah" placeholder="Telepon" value={letterhead.phone} onChange={(event) => updateLetterhead("phone", event.target.value)} />
+              <Input aria-label="Email sekolah" placeholder="Email" value={letterhead.email} onChange={(event) => updateLetterhead("email", event.target.value)} />
+            </div>
+          )}
+          <div className="mx-auto w-full max-w-[210mm] space-y-4 border bg-white p-6 text-sm shadow-sm sm:p-10">
+            {activeLetterhead && (
+              <header className="border-b-2 border-slate-800 pb-3 text-center">
+                <h2 className="text-lg font-bold uppercase">{activeLetterhead.school_name}</h2>
+                {activeLetterhead.address && <p>{activeLetterhead.address}</p>}
+                {(activeLetterhead.phone || activeLetterhead.email) && <p>{[activeLetterhead.phone, activeLetterhead.email].filter(Boolean).join(" · ")}</p>}
+              </header>
+            )}
+            <h2 className="text-center text-lg font-bold uppercase">{exam.exam_type}</h2>
+            <p className="text-center">{exam.subject} · {exam.class_phase} · {exam.semester}</p>
+            <p>Alokasi waktu: {exam.time_allocation} menit</p>
+            {visibleQuestions.map((question, index) => (
+              <article key={question.id} className="border-b border-slate-100 pb-3">
+                <p><strong>{index + 1}.</strong> {question.question_content}</p>
+                {question.illustration_image && <img src={question.illustration_image} alt={`Ilustrasi soal ${index + 1}`} className="my-2 max-h-48 max-w-full object-contain" />}
+                {question.options && <ul className="ml-5 list-disc">{Object.entries(question.options).map(([key, value]) => <li key={key}>{key}. {value}</li>)}</ul>}
+              </article>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
+            <Button onClick={() => void exportExamPdf(exam, visibleQuestions, activeLetterhead)}><FileDown className="mr-2 h-4 w-4" />Unduh PDF</Button>
+            {isPremiumActive && <Button onClick={() => void exportExamDocx(exam, visibleQuestions, activeLetterhead)}><Download className="mr-2 h-4 w-4" />Unduh DOCX</Button>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BillingDialog
         open={billingOpen}
