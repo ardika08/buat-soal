@@ -78,7 +78,7 @@ Deno.serve(async (request) => {
         });
 
       if (error) {
-        return null;
+        throw new Error(`Gagal mengunggah ilustrasi ke Supabase Storage: ${error.message}`);
       }
 
       const { data } = admin.storage.from("question-illustrations").getPublicUrl(path);

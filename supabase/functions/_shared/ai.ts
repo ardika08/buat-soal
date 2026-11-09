@@ -255,6 +255,9 @@ export async function attachIllustrationImages(
 
     generatedCount++;
     const imageUrl = await generateIllustration(prompt, uploadImage);
+    if (!imageUrl) {
+      throw new Error(`Ilustrasi soal ${index + 1} gagal dibuat atau diunggah.`);
+    }
     output.push({ ...question, illustration_image: imageUrl });
   }
 
@@ -385,12 +388,12 @@ async function generateIllustration(
   uploadImage: (path: string, bytes: Uint8Array) => Promise<string | null>,
 ) {
   if ((Deno.env.get("AI_GENERATE_ILLUSTRATIONS") ?? "true") === "false") {
-    return null;
+    throw new Error("Pembuatan ilustrasi dinonaktifkan di konfigurasi Supabase.");
   }
 
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
-    return null;
+    throw new Error("OPENAI_API_KEY belum dikonfigurasi untuk pembuatan ilustrasi.");
   }
 
   const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
@@ -415,17 +418,22 @@ async function generateIllustration(
   });
 
   if (!response.ok) {
-    return null;
+    const detail = await response.text();
+    throw new Error(`Penyedia ilustrasi gagal (HTTP ${response.status}): ${detail}`);
   }
 
   const json = await response.json();
   const base64 = json?.data?.[0]?.b64_json;
   if (typeof base64 !== "string" || base64 === "") {
-    return null;
+    throw new Error("Penyedia ilustrasi tidak mengembalikan data gambar.");
   }
 
   const bytes = decodeBase64(base64);
-  return uploadImage(`illustrations/${crypto.randomUUID()}.png`, bytes);
+  const imageUrl = await uploadImage(`illustrations/${crypto.randomUUID()}.png`, bytes);
+  if (!imageUrl) {
+    throw new Error("Gambar ilustrasi gagal diunggah ke Supabase Storage.");
+  }
+  return imageUrl;
 }
 
 function buildPrompt(data: GenerateExamPayload, total: number) {
@@ -472,8 +480,8 @@ function buildPrompt(data: GenerateExamPayload, total: number) {
       "Untuk soal Isian Singkat dengan target HOTS, batasi menjadi penalaran ringan yang masih bisa dipahami anak, bukan HOTS ekstrem.",
       "Untuk soal Uraian, sesuaikan kompleksitas jawaban dengan kemampuan siswa pada fase terkait dan hindari tuntutan penjelasan yang terlalu berat untuk usia mereka.",
       "correct_answer harus berisi jawaban benar langsung. Untuk Uraian jangan menulis awalan Rubrik jawaban, Rubrik, atau label sejenis.",
-      "illustration_prompt hanya diisi bila include_illustration true, question_type adalah Pilihan Ganda, dan soal benar-benar membutuhkan gambar untuk memahami konteks.",
-      `Jangan memberi ilustrasi untuk semua soal. Jika include_illustration true, pilih maksimal ${MAX_ILLUSTRATIONS} soal Pilihan Ganda yang paling membutuhkan gambar; untuk soal lainnya isi illustration_prompt null.`,
+      "Jika include_illustration true, isi illustration_prompt untuk soal Pilihan Ganda; jika false atau tipe soal bukan Pilihan Ganda, isi null.",
+      `Isi illustration_prompt untuk maksimal ${MAX_ILLUSTRATIONS} soal Pilihan Ganda pertama saat include_illustration true; jangan isi null untuk soal tersebut.`,
       "Prompt ilustrasi harus meminta gambar hitam putih sederhana, jelas, tanpa teks, tanpa watermark, dan mudah dipahami guru/siswa.",
     ],
     json_shape: {
