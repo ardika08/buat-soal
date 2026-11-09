@@ -50,7 +50,7 @@ export function totalQuestions(formats: GenerateExamPayload["formats"]) {
 export function selectAiProvider(profile: Profile) {
   return hasPremiumAccess(profile)
     ? Deno.env.get("AI_PREMIUM_PROVIDER") ?? "openai"
-    : Deno.env.get("AI_FREE_PROVIDER") ?? "gemini";
+    : "openai";
 }
 
 export async function generateQuestions(profile: Profile, data: GenerateExamPayload) {
@@ -164,7 +164,7 @@ async function capaianWithGemini(data: GenerateExamPayload) {
 
 async function capaianWithOpenAi(data: GenerateExamPayload) {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_PREMIUM_MODEL") ?? "gpt-5.4-mini";
+  const model = Deno.env.get("OPENAI_FREE_MODEL") ?? "gpt-4.1-mini";
   const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
 
   if (!apiKey) {
@@ -323,7 +323,7 @@ async function generateWithGemini(data: GenerateExamPayload, total: number) {
 
 async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_PREMIUM_MODEL") ?? "gpt-5.4-mini";
+  const model = Deno.env.get("OPENAI_FREE_MODEL") ?? "gpt-4.1-mini";
   const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
 
   if (!apiKey) {

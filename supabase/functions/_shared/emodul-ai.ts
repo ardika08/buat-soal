@@ -127,7 +127,7 @@ async function withGemini(prompt: string, schema: unknown) {
 
 async function withOpenAi(prompt: string, schema: unknown, schemaName: string) {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_PREMIUM_MODEL") ?? "gpt-5.4-mini";
+  const model = Deno.env.get("OPENAI_FREE_MODEL") ?? "gpt-4.1-mini";
   const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
 
   if (!apiKey) {

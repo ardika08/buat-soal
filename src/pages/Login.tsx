@@ -117,7 +117,7 @@ export default function Login() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Masuk ke Soalify</h1>
             <p className="mt-2 text-sm text-slate-500">
-              Login atau daftar otomatis memakai akun Google. User baru mendapat 10 kredit gratis.
+              Login atau daftar otomatis memakai akun Google. User baru mendapat 100 kredit gratis.
             </p>
           </div>
         </div>
