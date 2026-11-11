@@ -40,8 +40,13 @@ interface GeneratedQuestion {
   illustration_image?: string | null;
 }
 
-const MAX_ILLUSTRATIONS = Number(Deno.env.get("AI_MAX_ILLUSTRATIONS_PER_EXAM") ?? "5");
+const MAX_ILLUSTRATIONS = Number(Deno.env.get("AI_MAX_ILLUSTRATIONS_PER_EXAM") ?? "0");
 const MAX_QUESTIONS_PER_AI_REQUEST = Number(Deno.env.get("AI_MAX_QUESTIONS_PER_REQUEST") ?? "15");
+
+function automaticIllustrationCount(multipleChoiceCount: number) {
+  const recommended = Math.max(3, Math.round(multipleChoiceCount / 6));
+  return MAX_ILLUSTRATIONS > 0 ? Math.min(recommended, MAX_ILLUSTRATIONS) : recommended;
+}
 
 export function totalQuestions(formats: GenerateExamPayload["formats"]) {
   return formats.reduce((sum, format) => sum + Number(format.count ?? 0), 0);
@@ -241,20 +246,27 @@ export async function attachIllustrationImages(
   }
 
   const expectedTypes = expectedTypesFromFormats(data.formats);
-  let generatedCount = 0;
+  const multipleChoiceCount = expectedTypes.filter((item) => item.id === "pg").length;
+  const illustrationCount = automaticIllustrationCount(multipleChoiceCount);
+  const eligibleIndexes = questions
+    .map((question, index) => ({ index, question }))
+    .filter(({ index, question }) => expectedTypes[index]?.id === "pg" && question.illustration_prompt?.trim().length)
+    .map(({ index }) => index);
+
+  for (let i = eligibleIndexes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [eligibleIndexes[i], eligibleIndexes[j]] = [eligibleIndexes[j], eligibleIndexes[i]];
+  }
+  const selectedIndexes = new Set(eligibleIndexes.slice(0, illustrationCount));
 
   const output: GeneratedQuestion[] = [];
   for (const [index, question] of questions.entries()) {
-    const isMultipleChoice = expectedTypes[index]?.id === "pg";
-    const prompt = question.illustration_prompt?.trim();
-
-    if (!isMultipleChoice || !prompt || generatedCount >= MAX_ILLUSTRATIONS) {
+    if (!selectedIndexes.has(index)) {
       output.push({ ...question, illustration_prompt: null, illustration_image: null });
       continue;
     }
 
-    generatedCount++;
-    const imageUrl = await generateIllustration(prompt, uploadImage);
+    const imageUrl = await generateIllustration(question.illustration_prompt?.trim() ?? "", uploadImage);
     if (!imageUrl) {
       throw new Error(`Ilustrasi soal ${index + 1} gagal dibuat atau diunggah.`);
     }
@@ -480,8 +492,7 @@ function buildPrompt(data: GenerateExamPayload, total: number) {
       "Untuk soal Isian Singkat dengan target HOTS, batasi menjadi penalaran ringan yang masih bisa dipahami anak, bukan HOTS ekstrem.",
       "Untuk soal Uraian, sesuaikan kompleksitas jawaban dengan kemampuan siswa pada fase terkait dan hindari tuntutan penjelasan yang terlalu berat untuk usia mereka.",
       "correct_answer harus berisi jawaban benar langsung. Untuk Uraian jangan menulis awalan Rubrik jawaban, Rubrik, atau label sejenis.",
-      "Jika include_illustration true, isi illustration_prompt untuk soal Pilihan Ganda; jika false atau tipe soal bukan Pilihan Ganda, isi null.",
-      `Isi illustration_prompt untuk maksimal ${MAX_ILLUSTRATIONS} soal Pilihan Ganda pertama saat include_illustration true; jangan isi null untuk soal tersebut.`,
+      "Buat illustration_prompt untuk setiap soal saat include_illustration true; sistem memilih secara acak sebagian soal yang mendapat gambar. Biarkan null bila include_illustration false.",
       "Prompt ilustrasi harus meminta gambar hitam putih sederhana, jelas, tanpa teks, tanpa watermark, dan mudah dipahami guru/siswa.",
     ],
     json_shape: {
