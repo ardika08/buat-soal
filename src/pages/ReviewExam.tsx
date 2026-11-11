@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, RotateCcw, BookOpen, CheckSquare, Square } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, PenLine, FileDown, Zap, ChevronDown, ChevronUp, Save, X, AlertTriangle, FileText, Lock, Plus, Trash2, ArrowUp, ArrowDown, Copy, RotateCcw, BookOpen, CheckSquare, Square, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -670,6 +670,12 @@ export default function ReviewExam() {
                           q.difficulty === "Sedang" ? "bg-amber-50 text-amber-700" :
                           "bg-slate-100 text-slate-600"
                         }`}>{q.difficulty}</span>
+                        {q.illustration_image && (
+                          <span className="text-[10px] bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                            <Image className="w-3 h-3" />
+                            Ilustrasi
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
