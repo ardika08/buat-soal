@@ -404,7 +404,7 @@ async function generateIllustration(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("OPENAI_IMAGE_MODEL") ?? "gpt-image-1",
+      model: Deno.env.get("OPENAI_IMAGE_MODEL") ?? "gpt-image-1.5",
       prompt: [
         "Buat ilustrasi edukatif untuk soal ujian sekolah dasar.",
         "Gaya: hitam putih, line art sederhana, jelas, ramah anak, komposisi sederhana, tanpa teks, tanpa watermark.",
