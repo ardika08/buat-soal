@@ -55,18 +55,25 @@ export function totalQuestions(formats: GenerateExamPayload["formats"]) {
 export function selectAiProvider(profile: Profile) {
   return hasPremiumAccess(profile)
     ? Deno.env.get("AI_PREMIUM_PROVIDER") ?? "openai"
-    : "openai";
+    : Deno.env.get("AI_FREE_PROVIDER") ?? "openai";
+}
+
+function anthropicModel(premium: boolean) {
+  return premium
+    ? Deno.env.get("ANTHROPIC_PREMIUM_MODEL") ?? "claude-sonnet-4.5"
+    : Deno.env.get("ANTHROPIC_FREE_MODEL") ?? "claude-haiku-4.5";
 }
 
 export async function generateQuestions(profile: Profile, data: GenerateExamPayload) {
   const provider = selectAiProvider(profile);
+  const premium = hasPremiumAccess(profile);
   const batches = chunkFormats(data.formats, MAX_QUESTIONS_PER_AI_REQUEST);
   const questions: GeneratedQuestion[] = [];
 
   for (const formats of batches) {
     const batchData = { ...data, formats };
     const batchTotal = totalQuestions(formats);
-    questions.push(...await generateQuestionBatch(provider, batchData, batchTotal));
+    questions.push(...await generateQuestionBatch(provider, premium, batchData, batchTotal));
   }
 
   return questions;
@@ -77,13 +84,16 @@ export async function generateQuestions(profile: Profile, data: GenerateExamPayl
 export async function generateCapaianPembelajaran(
   provider: string,
   data: GenerateExamPayload,
+  premium: boolean,
 ): Promise<string[]> {
   const fallback = data.topics.map(() => "");
 
   try {
-    const payload = provider === "openai"
-      ? await capaianWithOpenAi(data)
-      : await capaianWithGemini(data);
+    const payload = provider === "anthropic"
+      ? await capaianWithAnthropic(data, premium)
+      : provider === "openai"
+        ? await capaianWithOpenAi(data)
+        : await capaianWithGemini(data);
     const capaian = (payload as { capaian?: unknown })?.capaian;
 
     if (!Array.isArray(capaian) || capaian.length !== data.topics.length) {
@@ -220,13 +230,20 @@ async function capaianWithOpenAi(data: GenerateExamPayload) {
   return JSON.parse(text);
 }
 
-async function generateQuestionBatch(provider: string, data: GenerateExamPayload, total: number) {
+async function generateQuestionBatch(
+  provider: string,
+  premium: boolean,
+  data: GenerateExamPayload,
+  total: number,
+) {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const payload = provider === "openai"
-        ? await generateWithOpenAi(data, total)
-        : await generateWithGemini(data, total);
+      const payload = provider === "anthropic"
+        ? await generateWithAnthropic(data, total, premium)
+        : provider === "openai"
+          ? await generateWithOpenAi(data, total)
+          : await generateWithGemini(data, total);
       return validateQuestions(payload, data, total);
     } catch (error) {
       lastError = error;
@@ -276,7 +293,7 @@ export async function attachIllustrationImages(
   return output;
 }
 
-function hasPremiumAccess(profile: Profile) {
+export function hasPremiumAccess(profile: Profile) {
   if (profile.subscription_tier !== "premium") {
     return false;
   }
@@ -393,6 +410,118 @@ async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
   }
 
   return JSON.parse(text);
+}
+
+async function generateWithAnthropic(data: GenerateExamPayload, total: number, premium: boolean) {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const model = anthropicModel(premium);
+  const baseUrl = (Deno.env.get("ANTHROPIC_BASE_URL") ?? "https://api.anthropic.com").replace(/\/$/, "");
+  const maxTokens = Number(Deno.env.get("ANTHROPIC_MAX_TOKENS") ?? "8192");
+
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY belum dikonfigurasi di Supabase Function Secrets.");
+  }
+
+  const userContent: unknown[] = [{ type: "text", text: anthropicPromptWrapper(buildPrompt(data, total), questionSchema(), "exam_questions") }];
+  if (data.reference_type === "PDF" && data.reference_file_base64) {
+    userContent.push({
+      type: "document",
+      source: { type: "base64", media_type: "application/pdf", data: data.reference_file_base64 },
+    });
+  }
+
+  const response = await fetch(`${baseUrl}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      system: "Anda adalah penyusun soal ujian sekolah. Jawab hanya dengan JSON sesuai schema.",
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Anthropic API mengembalikan error (HTTP ${response.status}). ${body}`);
+  }
+
+  const json = await response.json();
+  const text = extractAnthropicText(json);
+  if (!text) {
+    throw new Error("Anthropic API tidak mengembalikan teks JSON.");
+  }
+
+  return JSON.parse(text);
+}
+
+async function capaianWithAnthropic(data: GenerateExamPayload, premium: boolean) {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const model = anthropicModel(premium);
+  const baseUrl = (Deno.env.get("ANTHROPIC_BASE_URL") ?? "https://api.anthropic.com").replace(/\/$/, "");
+  const maxTokens = Number(Deno.env.get("ANTHROPIC_MAX_TOKENS") ?? "8192");
+
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY belum dikonfigurasi di Supabase Function Secrets.");
+  }
+
+  const response = await fetch(`${baseUrl}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      system: "Anda adalah penyusun kisi-kisi soal ujian sekolah. Jawab hanya dengan JSON sesuai schema.",
+      messages: [{
+        role: "user",
+        content: [{ type: "text", text: anthropicPromptWrapper(capaianPrompt(data), capaianSchema(), "capaian_pembelajaran") }],
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Anthropic API mengembalikan error (HTTP ${response.status}). ${body}`);
+  }
+
+  const json = await response.json();
+  const text = extractAnthropicText(json);
+  if (!text) {
+    throw new Error("Anthropic API tidak mengembalikan teks JSON.");
+  }
+
+  return JSON.parse(text);
+}
+
+// Anthropic Messages API tidak punya native JSON schema enforcement (seperti
+// OpenAI json_schema / Gemini responseJsonSchema), jadi instruksi + skema
+// disematkan ke dalam prompt dan output diparse sebagai JSON.
+function anthropicPromptWrapper(prompt: string, schema: unknown, schemaName: string) {
+  return [
+    prompt,
+    "",
+    `Kembalikan HANYA JSON valid yang sesuai schema berikut, tanpa teks lain di luar JSON. Nama schema: ${schemaName}.`,
+    `Schema: ${JSON.stringify(schema)}`,
+  ].join("\n");
+}
+
+function extractAnthropicText(payload: unknown) {
+  const data = payload as { content?: Array<{ type?: string; text?: string }> };
+  const parts = (data.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text.trim())
+    .filter(Boolean);
+  return parts.length ? parts.join("") : null;
 }
 
 async function generateIllustration(

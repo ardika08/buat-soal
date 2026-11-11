@@ -7,7 +7,7 @@
  */
 
 import type { Profile } from "./ai.ts";
-import { selectAiProvider } from "./ai.ts";
+import { hasPremiumAccess, selectAiProvider } from "./ai.ts";
 import {
   buildEModulPrompt,
   buildRegenerateSectionPrompt,
@@ -26,12 +26,14 @@ export async function generateEModul(
   payload: GenerateEModulPayload,
 ): Promise<EModulOutput> {
   const provider = selectAiProvider(profile);
+  const premium = hasPremiumAccess(profile);
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const raw = await callProvider(
         provider,
+        premium,
         buildEModulPrompt(payload),
         emodulSchema(),
         "emodul_structure",
@@ -59,12 +61,14 @@ export async function regenerateEModulSection(
   input: RegenerateSectionInput,
 ): Promise<string> {
   const provider = selectAiProvider(profile);
+  const premium = hasPremiumAccess(profile);
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const raw = await callProvider(
         provider,
+        premium,
         buildRegenerateSectionPrompt(input),
         regenerateSectionSchema(),
         "emodul_section",
@@ -78,10 +82,67 @@ export async function regenerateEModulSection(
   throw lastError instanceof Error ? lastError : new Error("Output AI tidak valid.");
 }
 
-function callProvider(provider: string, prompt: string, schema: unknown, schemaName: string) {
-  return provider === "openai"
-    ? withOpenAi(prompt, schema, schemaName)
-    : withGemini(prompt, schema);
+function callProvider(provider: string, premium: boolean, prompt: string, schema: unknown, schemaName: string) {
+  return provider === "anthropic"
+    ? withAnthropic(prompt, schema, premium)
+    : provider === "openai"
+      ? withOpenAi(prompt, schema, schemaName)
+      : withGemini(prompt, schema);
+}
+
+async function withAnthropic(prompt: string, schema: unknown, premium: boolean) {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const model = premium
+    ? Deno.env.get("ANTHROPIC_PREMIUM_MODEL") ?? "claude-sonnet-4.5"
+    : Deno.env.get("ANTHROPIC_FREE_MODEL") ?? "claude-haiku-4.5";
+  const baseUrl = (Deno.env.get("ANTHROPIC_BASE_URL") ?? "https://api.anthropic.com").replace(/\/$/, "");
+  const maxTokens = Number(Deno.env.get("ANTHROPIC_MAX_TOKENS") ?? "8192");
+
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY belum dikonfigurasi di Supabase Function Secrets.");
+  }
+
+  const wrappedPrompt = [
+    prompt,
+    "",
+    "Kembalikan HANYA JSON valid yang sesuai schema berikut, tanpa teks lain di luar JSON.",
+    `Schema: ${JSON.stringify(schema)}`,
+  ].join("\n");
+
+  const response = await fetch(`${baseUrl}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      temperature: 0.4,
+      system: "Anda adalah penyusun e-modul/bahan ajar. Jawab hanya dengan JSON sesuai schema.",
+      messages: [{ role: "user", content: [{ type: "text", text: wrappedPrompt }] }],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Anthropic API mengembalikan error (HTTP ${response.status}). ${body}`);
+  }
+
+  const json = await response.json();
+  const data = json as { content?: Array<{ type?: string; text?: string }> };
+  const text = (data.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text.trim())
+    .filter(Boolean)
+    .join("");
+
+  if (!text) {
+    throw new Error("Anthropic API tidak mengembalikan teks JSON.");
+  }
+
+  return JSON.parse(text);
 }
 
 async function withGemini(prompt: string, schema: unknown) {

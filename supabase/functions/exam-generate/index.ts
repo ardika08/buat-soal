@@ -1,4 +1,4 @@
-import { attachIllustrationImages, generateCapaianPembelajaran, generateQuestions, selectAiProvider, totalQuestions, type GenerateExamPayload } from "../_shared/ai.ts";
+import { attachIllustrationImages, generateCapaianPembelajaran, generateQuestions, hasPremiumAccess, selectAiProvider, totalQuestions, type GenerateExamPayload, type Profile } from "../_shared/ai.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createAdminClient, createUserClient, getSupabaseUrl } from "../_shared/supabase.ts";
 
@@ -47,21 +47,17 @@ Deno.serve(async (request) => {
       }, 402);
     }
 
-    const provider = selectAiProvider({
+    const aiProfile: Profile = {
       id: Number(profile.id),
       subscription_tier: profile.subscription_tier,
       credits_balance: Number(profile.credits_balance),
       subscription_expiry: profile.subscription_expiry,
-    });
+    };
+    const provider = selectAiProvider(aiProfile);
 
     const [generatedQuestions, capaian] = await Promise.all([
-      generateQuestions({
-        id: Number(profile.id),
-        subscription_tier: profile.subscription_tier,
-        credits_balance: Number(profile.credits_balance),
-        subscription_expiry: profile.subscription_expiry,
-      }, payload),
-      generateCapaianPembelajaran(provider, payload),
+      generateQuestions(aiProfile, payload),
+      generateCapaianPembelajaran(provider, payload, hasPremiumAccess(aiProfile)),
     ]);
 
     const enrichedTopics = payload.topics.map((topic, index) => ({

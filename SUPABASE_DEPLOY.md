@@ -200,6 +200,26 @@ supabase secrets set OPENAI_IMAGE_QUALITY=low
 supabase secrets set AI_MAX_ILLUSTRATIONS_PER_EXAM=5
 ```
 
+Untuk memakai Anthropic Claude sebagai provider AI (opsional, ganti OpenAI/Gemini):
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=ANTHROPIC_API_KEY
+supabase secrets set AI_FREE_PROVIDER=anthropic      # model default: claude-haiku-4.5
+supabase secrets set AI_PREMIUM_PROVIDER=anthropic   # model default: claude-sonnet-4.5
+```
+
+Opsi override model/behavior Anthropic:
+
+```bash
+supabase secrets set ANTHROPIC_FREE_MODEL=claude-haiku-4.5
+supabase secrets set ANTHROPIC_PREMIUM_MODEL=claude-sonnet-4.5
+supabase secrets set ANTHROPIC_MAX_TOKENS=8192
+supabase secrets set ANTHROPIC_BASE_URL=https://api.anthropic.com
+```
+
+Catatan: pembuatan gambar ilustrasi tetap memakai `OPENAI_API_KEY` (`OPENAI_IMAGE_MODEL`,
+default `gpt-image-1.5`) — Anthropic tidak punya API image generation di aplikasi ini.
+
 ## 7. Isi Environment Vercel
 
 Di Vercel -> Project -> Settings -> Environment Variables:
