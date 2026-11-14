@@ -14,9 +14,7 @@ persetujuan manusia dicatat eksplisit di bawah.
   `upgrade_required`) yang sudah ada. Tidak ada perubahan harga di siklus ini.
 - **Auth** (disetujui): Supabase Auth dengan **email + password + verifikasi email**
   + Google OAuth. Tidak ada auth kustom.
-- **Pembayaran** (disetujui): **Midtrans** (snap + webhook signature SHA512),
-  menggantikan Mayar. Kode Mayar dipertahankan sebagai jalur legacy sampai
-  Midtrans terbukti di sandbox, agar order lama tidak hangus.
+- **Pembayaran** (disetujui): Duitku Payment Gateway, mulai dari sandbox sampai akun lolos verifikasi. Mayar order lama tetap disimpan sebagai histori; Duitku sandbox credentials di Edge Function secrets saja. Production hanya setelah verifikasi akun dan konfigurasi API key production.
 
 ## Teknis (asumsi kecil)
 
@@ -55,5 +53,5 @@ persetujuan manusia dicatat eksplisit di bawah.
 ## Yang tidak dikerjakan tanpa keputusan manusia
 
 - Harga/paket berbayar dan besaran kredit (uang).
-- Isi `.env`/secret (GEMINI_API_KEY, OPENAI_API_KEY, MIDTRANS_SERVER_KEY/CLIENT_KEY).
+- Isi `.env`/secret (GEMINI_API_KEY, OPENAI_API_KEY, DUITKU_API_KEY/DUITKU_MERCHANT_CODE).
 - Rebrand/nama domain.

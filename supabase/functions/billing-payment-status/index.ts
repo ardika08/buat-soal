@@ -1,13 +1,14 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
+import { getDuitkuTransaction, mapDuitkuStatus } from "../_shared/duitku.ts";
 import { getMayarInvoice } from "../_shared/mayar.ts";
 import { mapProviderStatus, shouldReconcileOrder } from "../_shared/billing.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
 
 /**
- * Status pembayaran satu order (dipanggil frontend setelah kembali dari Mayar).
+ * Status pembayaran satu order (dipanggil frontend setelah kembali dari Duitku).
  *
  * Bertindak sebagai jaring pengaman webhook: bila webhook belum/tidak sampai tetapi
- * Mayar menyatakan invoice sudah lunas, order tetap dipenuhi di sini — lewat RPC
+ * Duitku menyatakan transaksi sudah lunas, order tetap dipenuhi di sini — lewat RPC
  * idempoten yang sama, sehingga tidak mungkin memberi kredit dua kali.
  */
 Deno.serve(async (request) => {
@@ -61,14 +62,17 @@ Deno.serve(async (request) => {
 
     // Bukan hanya `pending`: order yang sudah disapu TTL jadi `expired` tetap diperiksa,
     // karena pembayaran yang masuk tepat sebelum batas waktu tidak boleh hilang.
-    if (shouldReconcileOrder(order.status, order.provider_order_id)) {
-      const invoice = await getMayarInvoice(String(order.provider_order_id));
-      const providerStatus = mapProviderStatus(invoice.status);
+    if (order.provider === "duitku" && shouldReconcileOrder(order.status, order.provider_order_id)) {
+      const transaction = await getDuitkuTransaction(String(order.provider_order_id));
+      if (Number(transaction.amount) !== Number(order.amount)) {
+        return jsonResponse({ message: "Nominal transaksi Duitku tidak cocok dengan order." }, 409);
+      }
+      const providerStatus = mapDuitkuStatus(transaction.statusCode);
 
       const { data: result, error: fulfillError } = await admin.rpc("fulfill_payment_order", {
         p_order_id: order.id,
         p_provider_status: providerStatus,
-        p_provider_transaction_id: invoice.transactionId ?? null,
+        p_provider_transaction_id: typeof transaction.reference === "string" ? transaction.reference : null,
       });
 
       if (fulfillError) {
@@ -81,6 +85,19 @@ Deno.serve(async (request) => {
         user = toPublicUser(result.profile);
       }
 
+      order.status = providerStatus;
+    } else if (order.provider === "mayar" && shouldReconcileOrder(order.status, order.provider_order_id)) {
+      const invoice = await getMayarInvoice(String(order.provider_order_id));
+      const providerStatus = mapProviderStatus(invoice.status);
+      const { data: result, error: fulfillError } = await admin.rpc("fulfill_payment_order", {
+        p_order_id: order.id,
+        p_provider_status: providerStatus,
+        p_provider_transaction_id: invoice.transactionId ?? null,
+      });
+      if (fulfillError) {
+        return jsonResponse({ message: `Gagal menyinkronkan status pembayaran: ${fulfillError.message}` }, 500);
+      }
+      if (result?.profile) user = toPublicUser(result.profile);
       order.status = providerStatus;
     }
 

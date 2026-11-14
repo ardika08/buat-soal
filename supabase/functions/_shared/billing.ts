@@ -81,7 +81,7 @@ export function resolveCheckoutInput(body: Record<string, unknown>): ResolvedChe
 }
 
 /**
- * Status pembayaran yang diakui Mayar untuk invoice (`unpaid`, `paid`, `expired`, ...)
+ * Status pembayaran yang diakui gateway (`unpaid`, `paid`, `expired`, ...)
  * dipetakan ke status internal kita.
  *
  * Sengaja ketat: apa pun yang tidak dikenali jatuh ke 'pending', sehingga tidak mungkin
@@ -107,11 +107,29 @@ export function mapProviderStatus(providerStatus: string | null | undefined) {
   }
 }
 
+/**
+ * Pemetaan status Duitku (`statusCode` cek transaksi / callback).
+ *
+ * 00 = sukses/lunas, 01 = pending, 02 = dibatalkan. Kode lain (termasuk kosong) jatuh
+ * ke 'pending' supaya tidak pernah memberi kredit tanpa kepastian.
+ */
+export function mapDuitkuStatus(statusCode: string | number | null | undefined) {
+  switch (String(statusCode ?? "").trim()) {
+    case "00":
+      return "paid" as const;
+    case "02":
+      return "cancelled" as const;
+    case "01":
+    default:
+      return "pending" as const;
+  }
+}
+
 /** Batas waktu invoice (default 24 jam) supaya order pending tidak menggantung selamanya. */
 export const INVOICE_TTL_MINUTES = 24 * 60;
 
 /**
- * Apakah order ini masih perlu ditanyakan ulang ke Mayar?
+ * Apakah order Duitku masih perlu ditanyakan ulang?
  *
  * Bukan hanya `pending`: order yang sudah disapu menjadi `expired` oleh batas waktu TTL
  * tetap harus diperiksa, karena pengguna bisa saja membayar tepat sebelum batas waktu.
@@ -128,7 +146,7 @@ export function shouldReconcileOrder(orderStatus: string, providerOrderId: strin
 }
 
 /**
- * URL kembali setelah pembayaran di Mayar.
+ * URL kembali setelah pembayaran di Duitku.
  *
  * `order_id` WAJIB dibawa: tanpa itu halaman kembali tidak tahu order mana yang harus
  * diperiksa, sehingga pengguna yang sudah membayar tidak pernah melihat kreditnya masuk.

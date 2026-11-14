@@ -1,17 +1,17 @@
-import { INVOICE_TTL_MINUTES, mapProviderStatus } from "../_shared/billing.ts";
+import { INVOICE_TTL_MINUTES } from "../_shared/billing.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { getMayarInvoice } from "../_shared/mayar.ts";
+import { getDuitkuTransaction, mapDuitkuStatus } from "../_shared/duitku.ts";
 import { createAdminClient } from "../_shared/supabase.ts";
 
 /**
- * Rekonsiliasi pembayaran: jaring pengaman terakhir bila webhook Mayar tidak pernah sampai.
+ * Rekonsiliasi pembayaran: jaring pengaman terakhir bila webhook Duitku tidak pernah sampai.
  *
  * Dipanggil oleh penjadwal (cron) dengan header `x-reconcile-token`, atau oleh admin.
  * Webhook tetap jalur utama; fungsi ini hanya memastikan pembayaran yang sudah dibayar
- * di sisi Mayar pada akhirnya tetap dipenuhi.
+ * di sisi Duitku pada akhirnya tetap dipenuhi.
  *
  * Keamanan:
- *  - Tidak memercayai data di database sendiri soal status bayar: selalu tanya ke Mayar.
+ *  - Tidak memercayai data di database sendiri soal status bayar: selalu tanya ke Duitku.
  *  - Memakai RPC `fulfill_payment_order` yang idempoten, jadi rekonsiliasi berulang
  *    tidak mungkin menggandakan kredit.
  *  - Hanya order yang masih pending/expired dan punya invoice yang diperiksa.
@@ -75,14 +75,17 @@ Deno.serve(async (request) => {
       const orderId = Number(candidate.id);
 
       try {
-        // Sumber kebenaran: status sebenarnya di Mayar, bukan kolom di database kita.
-        const invoice = await getMayarInvoice(String(candidate.provider_order_id));
-        const providerStatus = mapProviderStatus(invoice.status);
+        // Sumber kebenaran: status sebenarnya di Duitku, bukan kolom di database kita.
+        const transaction = await getDuitkuTransaction(String(candidate.provider_order_id));
+        if (Number(transaction.amount) !== Number(candidate.amount)) {
+          throw new Error("Nominal transaksi Duitku tidak cocok dengan order.");
+        }
+        const providerStatus = mapDuitkuStatus(transaction.statusCode);
 
         const { data: result, error } = await admin.rpc("fulfill_payment_order", {
           p_order_id: orderId,
           p_provider_status: providerStatus,
-          p_provider_transaction_id: invoice.transactionId ?? null,
+          p_provider_transaction_id: typeof transaction.reference === "string" ? transaction.reference : null,
         });
 
         if (error) {

@@ -24,6 +24,7 @@ const MIGRATIONS = [
   join(root, "supabase", "migrations", "20260515000000_initial_buat_soal_schema.sql"),
   join(root, "supabase", "migrations", "20260912000000_p0_security_hotfix.sql"),
   join(root, "supabase", "migrations", "20260912010000_p1_billing_lifecycle.sql"),
+  join(root, "supabase", "migrations", "20260917000000_duitku_payment_gateway.sql"),
 ];
 
 function prepareSql(sql) {
@@ -97,9 +98,9 @@ async function createOrder({
     `insert into public.payment_orders (
        user_id, package_id, order_type, provider, provider_order_id, status,
        amount, credits, duration_months, created_at
-     ) values (
-       $1, $2, $3, 'mayar', $4, $5, $6, $7, $8, now() - make_interval(hours => $9)
-     ) returning *`,
+       ) values (
+        $1, $2, $3, 'duitku', $4, $5, $6, $7, $8, now() - make_interval(hours => $9)
+      ) returning *`,
     [profileId, packageId, orderType, providerOrderId, status, amount, credits, durationMonths, ageHours],
   );
   return rows[0];
@@ -244,6 +245,20 @@ test("orders_for_reconciliation mengabaikan order tanpa invoice dan order yang s
 
   const { rows } = await db.query("select public.orders_for_reconciliation(50, 7) as result");
   assert.equal(rows[0].result.orders.length, 0, "tanpa invoice atau sudah lunas tidak perlu dicek ulang");
+});
+
+test("orders_for_reconciliation tidak menanyakan order Mayar lama ke API Duitku", async () => {
+  await db.query("delete from public.payment_orders where user_id = $1", [profileA.id]);
+
+  await db.query(
+    `insert into public.payment_orders (
+       user_id, package_id, order_type, provider, provider_order_id, status, amount, credits
+     ) values ($1, 'custom-topup', 'topup', 'mayar', 'legacy-mayar-1', 'pending', 25000, 50)`,
+    [profileA.id],
+  );
+
+  const { rows } = await db.query("select public.orders_for_reconciliation(50, 7) as result");
+  assert.equal(rows[0].result.orders.length, 0, "order Mayar hanya boleh diselesaikan lewat jalur legacy");
 });
 
 test("orders_for_reconciliation mengabaikan order di luar jendela waktu", async () => {

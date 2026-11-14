@@ -14,15 +14,15 @@ import {
   type PaymentTone,
 } from "@/lib/billingReturn";
 
-/** Jeda antar pemeriksaan status (ms). Beri waktu webhook Mayar masuk lebih dulu. */
+/** Jeda antar pemeriksaan status (ms). Beri waktu webhook Duitku masuk lebih dulu. */
 const POLL_INTERVAL_MS = 3000;
 
 /**
- * Halaman kembali dari pembayaran Mayar (`/billing/return?order_id=...`).
+ * Halaman kembali dari pembayaran Duitku (`/billing/return?order_id=...`).
  *
  * Webhook adalah jalur utama pemenuhan kredit; halaman ini memantau status agar pengguna
  * melihat hasilnya tanpa menebak-nebak. Bila webhook belum sampai, setiap pemeriksaan
- * status juga merekonsiliasi invoice ke Mayar (lihat billing-payment-status), jadi
+ * status juga merekonsiliasi invoice ke Duitku (lihat billing-payment-status), jadi
  * pembayaran yang benar-benar lunas tetap terpenuhi meski webhook gagal terkirim.
  */
 export default function BillingReturn() {
@@ -112,7 +112,7 @@ export default function BillingReturn() {
                 <h1 className="text-xl font-bold text-slate-900">Pesanan tidak ditemukan</h1>
                 <p className="mt-2 text-sm text-slate-600">
                   Halaman ini tidak tahu pesanan mana yang harus diperiksa. Buka kembali tautan
-                  pembayaran dari email/tagihan Mayar, atau cek saldo kredit Anda di dashboard.
+                  pembayaran dari email/tagihan Duitku, atau cek saldo kredit Anda di dashboard.
                 </p>
               </div>
             </>

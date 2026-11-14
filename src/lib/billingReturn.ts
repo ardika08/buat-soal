@@ -1,7 +1,7 @@
 /**
  * Logika halaman kembali dari pembayaran (`/billing/return`).
  *
- * Setelah membayar di Mayar, browser pengguna diarahkan kembali ke aplikasi. Halaman itu
+ * Setelah membayar di Duitku, browser pengguna diarahkan kembali ke aplikasi. Halaman itu
  * harus tahu ORDER MANA yang sedang dikonfirmasi, lalu memantau statusnya sampai final.
  * Fungsi di sini murni supaya bisa diuji tanpa browser.
  */
@@ -12,9 +12,9 @@ export const MAX_STATUS_POLLS = 10;
 /**
  * Menentukan order id yang diperiksa.
  *
- * Prioritas: query string (dari URL kembali Mayar), lalu order terakhir yang disimpan
+ * Prioritas: query string (dari URL kembali Duitku), lalu order terakhir yang disimpan
  * browser oleh dialog checkout saat invoice dibuat. Cadangan terakhir diperlukan karena
- * tidak semua konfigurasi Mayar mengembalikan query tambahan kita.
+ * tidak semua konfigurasi Duitku mengembalikan query tambahan kita.
  */
 export function resolveOrderId(search: string, storedOrderId: string | null): number | null {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);

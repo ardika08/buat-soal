@@ -36,6 +36,7 @@ Buka Supabase Dashboard -> SQL Editor, lalu jalankan **berurutan**:
 16. supabase/migrations/20260915090000_emodul_access_status.sql
 17. supabase/migrations/20260915100000_subscription_packages.sql
 18. supabase/migrations/20260915110000_subscription_packages_seed.sql
+19. supabase/migrations/20260917000000_duitku_payment_gateway.sql
 ```
 
 Jalankan setiap migration **hanya setelah** migration sebelumnya selesai tanpa error.
@@ -75,11 +76,10 @@ npm ci
 npm test
 ```
 
-Harus **71/71 pass** (`npm run test:security` 14 uji, `npm run test:lifecycle` 16 uji,
-`npm run test:billing` 12 uji, `npm run test:api` 22 uji pemetaan data, sisanya uji
-anti-drift harga). Test ini menyerang jalur asli (menaikkan kredit lewat update profil,
-memanggil RPC kredit dari klien, webhook berulang, order yang dibayar setelah kedaluwarsa)
-dan memastikan semuanya gagal/aman.
+Harus **295/295 pass** (`npm test`; mencakup keamanan billing P0, siklus hidup P1,
+gateway Duitku, dan uji pemetaan data). Test menyerang jalur asli (menaikkan kredit lewat
+update profil, memanggil RPC kredit dari klien, webhook berulang, order yang dibayar
+setelah kedaluwarsa) dan memastikan semuanya gagal/aman.
 
 ### Gate rilis
 
@@ -91,7 +91,7 @@ dari yang diuji. Sebelum rilis, keempat perintah ini harus lulus:
 npm ci --ignore-scripts          # lockfile sinkron
 npm run lint                     # 0 error, 0 warning
 npm run build                    # typecheck + build bersih
-npm test                         # 71/71 lulus
+npm test                         # 295/295 lulus
 npm audit --omit=dev --audit-level=high   # tanpa kerentanan high/critical
 ```
 
@@ -149,9 +149,9 @@ supabase functions deploy billing-webhook --no-verify-jwt
 supabase functions deploy billing-reconcile --no-verify-jwt
 ```
 
-Catatan: `billing-webhook` dipanggil Mayar (bukan user), jadi **tidak boleh** memakai
-verifikasi JWT Supabase — aksesnya dijaga oleh `MAYAR_WEBHOOK_SECRET` + verifikasi ulang
-status invoice ke API Mayar.
+Catatan: `billing-webhook` dipanggil Duitku (bukan user), jadi **tidak boleh** memakai
+verifikasi JWT Supabase — aksesnya dijaga verifikasi signature HMAC-SHA256 callback Duitku
+plus pengecekan ulang status transaksi ke API Duitku.
 
 `billing-reconcile` juga tanpa JWT karena dipanggil penjadwal (cron), bukan user. Aksesnya
 dijaga `BILLING_RECONCILE_TOKEN`, dan endpoint menolak semua permintaan bila token belum
@@ -167,17 +167,18 @@ supabase secrets set GEMINI_API_KEY=GEMINI_API_KEY
 supabase secrets set AI_FREE_PROVIDER=gemini
 ```
 
-Billing Mayar (wajib untuk top up):
+Billing Duitku (wajib untuk top up):
 
 ```bash
-supabase secrets set MAYAR_API_KEY=MAYAR_API_KEY
-supabase secrets set MAYAR_MODE=production      # atau: sandbox
-supabase secrets set MAYAR_WEBHOOK_SECRET=RANDOM_TOKEN_PANJANG
+supabase secrets set DUITKU_MERCHANT_CODE=DS37956
+supabase secrets set DUITKU_API_KEY=DUITKU_API_KEY
+supabase secrets set DUITKU_MODE=sandbox        # ganti ke production setelah akun terverifikasi
 supabase secrets set APP_BASE_URL=https://buatsoal-fast.vercel.app
 ```
 
-`MAYAR_WEBHOOK_SECRET` bukan dari Mayar — kita yang membuatnya dan menyisipkannya ke URL
-webhook (lihat langkah 8).
+`DUITKU_API_KEY` didapat dari Merchant Portal Duitku (Project -> API Key). Tanpa nilai ini
+semua fungsi billing menolak membuat invoice. Callback URL diisi otomatis oleh
+`billing-checkout` memakai `SUPABASE_URL`, jadi tidak perlu diset manual.
 
 Rekonsiliasi terjadwal (pengaman bila webhook hilang):
 
@@ -238,28 +239,30 @@ VITE_API_BASE_URL
 
 Lalu redeploy Vercel.
 
-## 8. Daftarkan Webhook Mayar
+## 8. Periksa Callback Duitku
 
-Di dashboard Mayar -> Integration -> Webhook, set URL:
+Di Merchant Portal Duitku (Project -> Callback URL), daftarkan URL Edge Function:
 
 ```text
-https://PROJECT_REF.supabase.co/functions/v1/billing-webhook?token=MAYAR_WEBHOOK_SECRET
+https://PROJECT_REF.supabase.co/functions/v1/billing-webhook
 ```
 
-`MAYAR_WEBHOOK_SECRET` harus sama persis dengan nilai yang di-set di langkah 6.
+URL ini menerima callback `application/x-www-form-urlencoded`, memverifikasi signature
+HMAC-SHA256 Duitku, lalu meminta status transaksi langsung ke Duitku. Jangan memakai URL
+return sebagai bukti pembayaran; hanya callback tervalidasi atau rekonsiliasi server yang
+boleh memberi kredit.
 
 Alur pemenuhan benefit:
 
-1. Pengguna klik top up -> `billing-checkout` membuat baris `payment_orders` berstatus
-   `pending` + invoice Mayar. **Belum ada kredit yang diberikan.**
-2. Setelah bayar, Mayar memanggil `billing-webhook`.
-3. Webhook **tidak mempercayai payload**-nya. Ia memverifikasi token, lalu memanggil
-   `GET /invoice/{id}` ke API Mayar untuk memastikan status sebenarnya.
-4. Bila Mayar menyatakan `paid`, `fulfill_payment_order` mengunci baris order
-   (`SELECT ... FOR UPDATE`) dan memberi kredit/premium **tepat satu kali** — webhook
-   berulang atau replay aman karena idempoten.
-5. `billing-payment-status` (dipanggil frontend saat pengguna kembali dari Mayar)
-   memakai RPC yang sama sebagai jaring pengaman bila webhook telat/gagal.
+1. Pengguna checkout -> `billing-checkout` membuat baris `payment_orders` berstatus
+   `pending` + invoice Duitku sandbox. Belum ada kredit yang diberikan.
+2. Duitku memanggil `billing-webhook` setelah transaksi.
+3. Webhook memverifikasi signature dan mencocokkan nominal, lalu memeriksa status transaksi
+   dengan endpoint Duitku `transactionStatus`.
+4. Bila status `00`, `fulfill_payment_order` mengunci baris order (`SELECT ... FOR UPDATE`)
+   dan memberi kredit/premium tepat satu kali.
+5. `billing-payment-status` mengecek status server-side saat pengguna kembali, sebagai
+   jaring pengaman bila webhook telat/gagal.
 
 ## 9. Jadwalkan Rekonsiliasi (wajib untuk siklus hidup billing)
 
@@ -290,7 +293,7 @@ Setiap pemanggilan melakukan tiga hal berurutan:
 
 1. `expire_subscriptions` — premium lewat masa berlaku diturunkan ke `free`;
 2. `expire_stale_payment_orders` — order pending lebih tua dari 24 jam ditutup;
-3. rekonsiliasi tiap order pending/expired ke Mayar; order yang ternyata sudah lunas
+3. rekonsiliasi tiap order Duitku pending/expired; order yang ternyata sudah lunas
    dipenuhi lewat RPC idempoten yang sama.
 
 Hasilnya bisa dicek dari respons JSON (`sweeps`, `fulfilled`, `errors`).
@@ -307,10 +310,10 @@ Tes berurutan:
    tidak menghapus baris berikutnya)
 6. Export PDF/DOCX
 7. Top up: pastikan kredit **tidak** bertambah sebelum pembayaran benar-benar lunas
-8. Setelah bayar di Mayar, pastikan kredit bertambah **tepat sekali** (refresh berkali-kali
+8. Setelah bayar di Duitku, pastikan kredit bertambah **tepat sekali** (refresh berkali-kali
    tidak menambah kredit lagi)
 9. Pastikan halaman `/billing/return` menampilkan status pesanan (bukan dashboard tanpa
-   penjelasan) setelah kembali dari Mayar
+   penjelasan) setelah kembali dari Duitku
 10. Uji langganan kedaluwarsa: set `subscription_expiry` ke waktu lampau, panggil
     `billing-reconcile`, lalu pastikan `subscription_tier` turun ke `free` **tanpa**
     mengurangi `credits_balance`

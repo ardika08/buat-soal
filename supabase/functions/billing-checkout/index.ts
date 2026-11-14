@@ -1,14 +1,14 @@
 import { buildBillingReturnUrl, INVOICE_TTL_MINUTES, resolveCheckoutInput, CUSTOM_TOPUP_PACKAGE_ID } from "../_shared/billing.ts";
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { createMayarInvoice } from "../_shared/mayar.ts";
+import { createDuitkuInvoice, getDuitkuTransaction, mapDuitkuStatus } from "../_shared/duitku.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
 
 /**
- * Membuat order pembayaran berstatus `pending` + invoice Mayar.
+ * Membuat order pembayaran berstatus `pending` + invoice Duitku.
  *
  * PENTING: fungsi ini TIDAK memberi kredit, TIDAK mengaktifkan premium, dan TIDAK
  * memperpanjang langganan. Benefit hanya diberikan oleh `billing-webhook` setelah
- * pembayaran terverifikasi ke API Mayar (lihat fulfill_payment_order).
+ * pembayaran terverifikasi melalui API Duitku (lihat fulfill_payment_order).
  */
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -63,6 +63,7 @@ Deno.serve(async (request) => {
       .select("*")
       .eq("user_id", profile.id)
       .eq("package_id", resolved.packageId)
+      .eq("provider", "duitku")
       .eq("status", "pending");
 
     if (resolved.packageId === CUSTOM_TOPUP_PACKAGE_ID) {
@@ -74,15 +75,28 @@ Deno.serve(async (request) => {
       .limit(1)
       .maybeSingle();
 
-    if (pendingOrder?.checkout_url) {
-      return jsonResponse({
-        message: "Order pembayaran sudah dibuat. Lanjutkan pembayaran Anda.",
-        package: toPublicPackage(resolved),
-        order: toPublicOrder(pendingOrder),
-        payment: toPublicPayment(pendingOrder),
-        user: toPublicUser(profile),
-        reused: true,
-      });
+    if (pendingOrder?.checkout_url && pendingOrder.provider_order_id) {
+      const stillOpen = await isDuitkuOrderStillPending(
+        String(pendingOrder.provider_order_id),
+        Number(pendingOrder.amount),
+      );
+
+      if (stillOpen) {
+        return jsonResponse({
+          message: "Order pembayaran sudah dibuat. Lanjutkan pembayaran Anda.",
+          package: toPublicPackage(resolved),
+          order: toPublicOrder(pendingOrder),
+          payment: toPublicPayment(pendingOrder),
+          user: toPublicUser(profile),
+          reused: true,
+        });
+      }
+
+      // Invoice lama sudah lunas/batal/kedaluwarsa di Duitku: tutup agar order baru bersih.
+      await admin
+        .from("payment_orders")
+        .update({ status: "expired" })
+        .eq("id", pendingOrder.id);
     }
 
     const expiredAt = new Date(Date.now() + INVOICE_TTL_MINUTES * 60_000);
@@ -93,7 +107,7 @@ Deno.serve(async (request) => {
         user_id: profile.id,
         package_id: resolved.packageId,
         order_type: resolved.orderType,
-        provider: "mayar",
+        provider: "duitku",
         status: "pending",
         amount: resolved.amount,
         credits: resolved.credits,
@@ -111,25 +125,16 @@ Deno.serve(async (request) => {
 
     let invoice;
     try {
-      invoice = await createMayarInvoice({
-        name: customerName,
+      invoice = await createDuitkuInvoice({
+        orderId: Number(order.id),
+        amount: resolved.amount,
+        productDetails: `${resolved.name} - ${resolved.credits} kredit Soalify`,
+        customerName,
         email: customerEmail,
-        mobile: customerMobile,
-        redirectUrl: buildRedirectUrl(request, Number(order.id)),
-        description: `${resolved.name} - ${resolved.credits} kredit Soalify (order #${order.id})`,
-        expiredAt: expiredAt.toISOString(),
-        items: [
-          {
-            quantity: 1,
-            rate: resolved.amount,
-            description: resolved.name,
-          },
-        ],
-        extraData: {
-          orderId: String(order.id),
-          userId: String(profile.id),
-          packageId: resolved.packageId,
-        },
+        phoneNumber: customerMobile,
+        callbackUrl: buildCallbackUrl(request),
+        returnUrl: buildRedirectUrl(request, Number(order.id)),
+        expiryPeriod: Math.max(5, Math.floor((expiredAt.getTime() - Date.now()) / 60_000)),
       });
     } catch (error) {
       // Order tanpa invoice tidak berarti apa-apa: tandai gagal sebelum dilempar.
@@ -141,13 +146,13 @@ Deno.serve(async (request) => {
       throw error;
     }
 
-    const checkoutUrl = invoice.link ?? invoice.paymentUrl ?? null;
+    const checkoutUrl = invoice.paymentUrl;
 
     const { data: updatedOrder, error: updateError } = await admin
       .from("payment_orders")
       .update({
-        provider_order_id: invoice.id,
-        provider_transaction_id: invoice.transactionId ?? null,
+        provider_order_id: invoice.merchantOrderId,
+        provider_transaction_id: invoice.reference,
         checkout_url: checkoutUrl,
       })
       .eq("id", order.id)
@@ -202,6 +207,18 @@ async function expireStaleOrders(admin: ReturnType<typeof createAdminClient>, pr
     .eq("user_id", profileId)
     .eq("status", "pending")
     .lt("created_at", new Date(Date.now() - INVOICE_TTL_MINUTES * 60_000).toISOString());
+}
+
+async function isDuitkuOrderStillPending(merchantOrderId: string, expectedAmount: number) {
+  const transaction = await getDuitkuTransaction(merchantOrderId);
+  return mapDuitkuStatus(transaction.statusCode) === "pending"
+    && Number(transaction.amount) === expectedAmount;
+}
+
+function buildCallbackUrl(request: Request) {
+  const configured = Deno.env.get("SUPABASE_URL");
+  const base = configured ?? new URL(request.url).origin;
+  return `${base.replace(/\/+$/, "")}/functions/v1/billing-webhook`;
 }
 
 function buildRedirectUrl(request: Request, orderId: number) {

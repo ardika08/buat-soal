@@ -82,7 +82,7 @@ export interface BillingPackage {
 
 export interface BillingPayment {
   order_id: number;
-  provider: "mayar";
+  provider: "duitku";
   status: "pending" | "paid" | "expired" | "failed" | "cancelled";
   checkout_url: string | null;
   provider_order_id?: string | null;

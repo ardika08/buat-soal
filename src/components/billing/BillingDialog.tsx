@@ -110,17 +110,17 @@ function BillingPackagesPanel({
     checkoutFn: () => Promise<{ data: BillingCheckoutResponse }>,
   ) => {
     if (!customerName.trim()) {
-      setError("Nama pembeli wajib diisi agar checkout Mayar bisa dibuat.");
+      setError("Nama pembeli wajib diisi agar checkout Duitku bisa dibuat.");
       return;
     }
 
     if (!customerEmail.trim()) {
-      setError("Email pembeli wajib diisi agar checkout Mayar bisa dibuat.");
+      setError("Email pembeli wajib diisi agar checkout Duitku bisa dibuat.");
       return;
     }
 
     if (!customerMobile.trim()) {
-      setError("Nomor WhatsApp wajib diisi agar checkout Mayar bisa dibuat.");
+      setError("Nomor WhatsApp wajib diisi agar checkout Duitku bisa dibuat.");
       return;
     }
 
@@ -133,10 +133,10 @@ function BillingPackagesPanel({
       localStorage.setItem("billing_customer_name", customerName.trim());
       localStorage.setItem("billing_customer_email", customerEmail.trim());
       localStorage.setItem("billing_customer_mobile", customerMobile.trim());
-      // Halaman /billing/return memakai ini sebagai cadangan bila Mayar tidak
+      // Halaman /billing/return memakai ini sebagai cadangan bila Duitku tidak
       // mengembalikan parameter order_id di URL kembali.
       localStorage.setItem("billing_last_order_id", String(res.data.payment.order_id));
-      setMessage("Link pembayaran berhasil dibuat. Anda akan diarahkan ke halaman checkout Mayar.");
+      setMessage("Link pembayaran berhasil dibuat. Anda akan diarahkan ke halaman checkout Duitku.");
 
       if (res.data.payment.checkout_url) {
         window.location.assign(res.data.payment.checkout_url);
@@ -146,7 +146,7 @@ function BillingPackagesPanel({
       setError("Checkout dibuat, tetapi link pembayaran tidak ditemukan.");
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: string } } };
-      setError(apiError.response?.data?.message ?? "Checkout Mayar gagal dibuat.");
+      setError(apiError.response?.data?.message ?? "Checkout Duitku gagal dibuat.");
     } finally {
       setProcessingId(null);
     }
@@ -211,7 +211,7 @@ function BillingPackagesPanel({
             Data pembeli untuk checkout
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            Data ini akan dikirim ke Mayar agar form checkout tidak kosong dan pengguna tidak perlu mengisi ulang sebanyak mungkin.
+            Data ini akan dikirim ke Duitku untuk membuat checkout pembayaran.
           </p>
           <Input
             id="billing-name"
@@ -345,7 +345,7 @@ function BillingPackagesPanel({
         )}
 
         <p className="text-xs text-slate-500">
-          Paket akan aktif otomatis setelah pembayaran Mayar terverifikasi.
+          Paket akan aktif otomatis setelah pembayaran Duitku terverifikasi.
         </p>
       </div>
     </>

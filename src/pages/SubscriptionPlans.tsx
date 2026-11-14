@@ -13,7 +13,7 @@ import { EMODUL_ACCESS_PATH } from "@/lib/routes";
  * Halaman paket langganan dengan manfaat E-Book.
  *
  * Menjelaskan isi tiap paket (Dasar & Premium) dan manfaat E-Book yang
- * dibundel. Pembelian tetap lewat BillingDialog (checkout Mayar) — tidak ada
+ * dibundel. Pembelian tetap lewat BillingDialog (checkout Duitku) — tidak ada
  * sistem pembayaran terpisah. Harga mengikuti paket yang berlaku.
  */
 

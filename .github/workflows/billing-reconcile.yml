@@ -1,11 +1,11 @@
 name: Billing reconcile
 
-# Penjadwal rekonsiliasi pembayaran: jaring pengaman bila webhook Mayar hilang.
+# Penjadwal rekonsiliasi pembayaran: jaring pengaman bila callback Duitku hilang.
 #
 # Tiap 15 menit fungsi ini memanggil Edge Function `billing-reconcile` yang:
 #   1. menurunkan langganan premium yang sudah lewat masa berlaku,
 #   2. menutup order pending yang menggantung (>24 jam),
-#   3. menanyakan ulang status invoice ke Mayar dan memenuhi order yang
+#   3. menanyakan ulang status transaksi ke API Duitku dan memenuhi order yang
 #      ternyata sudah dibayar (idempoten — tidak mungkin kredit ganda).
 #
 # Token bersama disimpan sebagai secret (sama nilainya dengan
