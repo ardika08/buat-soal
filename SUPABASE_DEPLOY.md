@@ -109,6 +109,7 @@ Di Supabase Dashboard -> Authentication -> Providers -> Google:
 Tambahkan authorized JavaScript origins di Google Cloud:
 
 ```text
+https://gurukit.web.id
 https://buatsoal-fast.vercel.app
 http://localhost:5173
 ```
@@ -173,7 +174,7 @@ Billing Duitku (wajib untuk top up):
 supabase secrets set DUITKU_MERCHANT_CODE=DS37956
 supabase secrets set DUITKU_API_KEY=DUITKU_API_KEY
 supabase secrets set DUITKU_MODE=sandbox        # ganti ke production setelah akun terverifikasi
-supabase secrets set APP_BASE_URL=https://buatsoal-fast.vercel.app
+supabase secrets set APP_BASE_URL=https://gurukit.web.id
 ```
 
 `DUITKU_API_KEY` didapat dari Merchant Portal Duitku (Project -> API Key). Tanpa nilai ini

@@ -222,18 +222,22 @@ function buildCallbackUrl(request: Request) {
 }
 
 function buildRedirectUrl(request: Request, orderId: number) {
+  const origin = request.headers.get("Origin") ?? request.headers.get("Referer") ?? "";
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return buildBillingReturnUrl(parsed.origin, orderId);
+    }
+  } catch {
+    // Abaikan header Origin/Referer yang tidak valid dan gunakan APP_BASE_URL.
+  }
+
   const configured = Deno.env.get("APP_BASE_URL");
   if (configured) {
     return buildBillingReturnUrl(configured, orderId);
   }
 
-  const origin = request.headers.get("Origin") ?? request.headers.get("Referer") ?? "";
-  try {
-    const base = new URL(origin).origin;
-    return buildBillingReturnUrl(base, orderId);
-  } catch {
-    return buildBillingReturnUrl("https://gurukit.app", orderId);
-  }
+  return buildBillingReturnUrl("https://gurukit.web.id", orderId);
 }
 
 function toPublicPackage(resolved: { packageId: string; orderType: string; credits: number; amount: number; name: string; durationMonths: number | null }) {

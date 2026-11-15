@@ -75,15 +75,15 @@ test("URL kembali dari pembayaran membawa order id", () => {
   // Tanpa order id, halaman kembali tidak tahu order mana yang harus diperiksa sehingga
   // kredit pengguna tidak pernah dikonfirmasi.
   assert.equal(
-    buildBillingReturnUrl("https://gurukit.app", 42),
-    "https://gurukit.app/billing/return?order_id=42",
+    buildBillingReturnUrl("https://gurukit.web.id", 42),
+    "https://gurukit.web.id/billing/return?order_id=42",
   );
 });
 
 test("URL kembali menormalkan base URL yang punya garis miring di akhir", () => {
   assert.equal(
-    buildBillingReturnUrl("https://gurukit.app/", 7),
-    "https://gurukit.app/billing/return?order_id=7",
+    buildBillingReturnUrl("https://gurukit.web.id/", 7),
+    "https://gurukit.web.id/billing/return?order_id=7",
   );
 });
 
