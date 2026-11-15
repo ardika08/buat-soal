@@ -49,6 +49,7 @@ function BillingPackagesPanel({
   const [activeTab, setActiveTab] = useState<"topup" | "subscription">(defaultTab);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [checkoutStage, setCheckoutStage] = useState<"creating" | "redirecting" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState(
@@ -130,6 +131,7 @@ function BillingPackagesPanel({
     }
 
     setProcessingId(processingKey);
+    setCheckoutStage("creating");
     setMessage(null);
     setError(null);
 
@@ -144,19 +146,22 @@ function BillingPackagesPanel({
       setMessage("Link pembayaran berhasil dibuat. Anda akan diarahkan ke halaman checkout Duitku.");
 
       if (res.data.payment.checkout_url) {
+        setCheckoutStage("redirecting");
         window.location.assign(res.data.payment.checkout_url);
         return;
       }
 
       setError("Checkout dibuat, tetapi link pembayaran tidak ditemukan.");
+      setProcessingId(null);
+      setCheckoutStage(null);
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: string } } };
       setError(
         apiError.response?.data?.message ??
           "Checkout pembayaran gagal dibuat. Periksa kembali data pembeli lalu coba lagi.",
       );
-    } finally {
       setProcessingId(null);
+      setCheckoutStage(null);
     }
   };
 
@@ -335,7 +340,7 @@ function BillingPackagesPanel({
                   ) : (
                     <Wallet className="h-4 w-4" aria-hidden="true" />
                   )}
-                  Bayar
+                  {processingId === "custom-topup" ? "Memproses…" : "Bayar"}
                 </Button>
               </div>
             </div>
@@ -376,7 +381,7 @@ function BillingPackagesPanel({
                     ) : (
                       <CreditCard className="h-4 w-4" aria-hidden="true" />
                     )}
-                    Bayar
+                    {processingId === item.id ? "Memproses…" : "Bayar"}
                   </Button>
                 </div>
               </div>
@@ -388,6 +393,30 @@ function BillingPackagesPanel({
           Paket akan aktif otomatis setelah pembayaran Duitku terverifikasi.
         </p>
       </div>
+
+      {checkoutStage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4 backdrop-blur-[2px] animate-in fade-in duration-150"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+              <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">
+              {checkoutStage === "creating"
+                ? "Menyiapkan tagihan pembayaran…"
+                : "Mengalihkan ke halaman Duitku…"}
+            </h3>
+            <p className="mt-1.5 text-sm text-slate-600">
+              {checkoutStage === "creating"
+                ? "Mohon tunggu sebentar, sedang membuat sesi checkout Anda."
+                : "Halaman pembayaran sedang dibuka. Jangan tutup atau muat ulang halaman ini."}
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
