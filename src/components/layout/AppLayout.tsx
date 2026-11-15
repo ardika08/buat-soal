@@ -65,7 +65,7 @@ export default function AppLayout() {
                 <BrainCircuit className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent">
-                Soalify
+                GuruKit
               </span>
             </Link>
 
@@ -114,7 +114,7 @@ export default function AppLayout() {
 
         {/* Simple Footer */}
         <footer className="border-t bg-white mt-auto py-6 text-center text-slate-500 text-sm">
-          <p>© 2026 Soalify. Solusi Cerdas Guru Indonesia.</p>
+          <p>© 2026 GuruKit. Solusi Cerdas Guru Indonesia.</p>
         </footer>
       </div>
     </div>

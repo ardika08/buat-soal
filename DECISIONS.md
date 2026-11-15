@@ -48,7 +48,7 @@ persetujuan manusia dicatat eksplisit di bawah.
     `reviewed_by`; alur review lengkap di luar daftar MVP wajib.
 11. **Onboarding**: tabel `teacher_profiles` (jenjang & mapel yang diampu), dipakai
     preselect wizard. Bisa dilewati (skip) dan diubah dari Profil.
-12. **Nama produk** tetap "Soalify" (tidak ada keputusan rebrand).
+12. **Nama produk** menggunakan brand "GuruKit".
 
 ## Yang tidak dikerjakan tanpa keputusan manusia
 

@@ -545,7 +545,7 @@ export default function EModulPreview() {
             )}
 
             <footer className="mt-10 border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
-              Soalify · E-Modul {draft.subject}
+              GuruKit · E-Modul {draft.subject}
             </footer>
           </article>
 

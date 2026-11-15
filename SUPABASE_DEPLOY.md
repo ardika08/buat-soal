@@ -1,4 +1,4 @@
-# Deploy Supabase untuk Soalify
+# Deploy Supabase untuk GuruKit
 
 > **PENTING (P0 Security Hotfix):** migration `20260912000000_p0_security_hotfix.sql`
 > **wajib** dijalankan setelah schema awal. Sebelum migration ini dijalankan, pengguna

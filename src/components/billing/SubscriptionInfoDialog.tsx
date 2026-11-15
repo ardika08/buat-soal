@@ -55,10 +55,10 @@ export default function SubscriptionInfoDialog({
           </div>
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-2xl font-bold text-white">
-              Mengapa Soalify Berlangganan?
+              Mengapa GuruKit Berlangganan?
             </DialogTitle>
             <DialogDescription className="max-w-xl text-sm leading-relaxed text-indigo-100">
-              Kami membangun Soalify agar tetap berkualitas, stabil, dan terus berkembang untuk membantu pekerjaan guru setiap hari.
+              Kami membangun GuruKit agar tetap berkualitas, stabil, dan terus berkembang untuk membantu pekerjaan guru setiap hari.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -68,7 +68,7 @@ export default function SubscriptionInfoDialog({
             <div className="flex items-start gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700" aria-hidden="true" />
               <p className="text-sm leading-6 text-slate-700">
-                Soalify menggunakan <span className="font-semibold text-slate-900">model AI tier premium</span> agar hasil soal lebih konsisten, relevan, dan efisien untuk kebutuhan pembelajaran.
+                GuruKit menggunakan <span className="font-semibold text-slate-900">model AI tier premium</span> agar hasil soal lebih konsisten, relevan, dan efisien untuk kebutuhan pembelajaran.
               </p>
             </div>
 
@@ -96,7 +96,7 @@ export default function SubscriptionInfoDialog({
             <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
               <Ticket className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" aria-hidden="true" />
               <p className="text-sm leading-6 text-slate-700">
-                Anda juga bisa <span className="font-semibold text-slate-900">mencoba dulu layanan ini</span> sebelum memutuskan berlangganan, sehingga bisa menilai apakah Soalify cocok dengan kebutuhan Anda.
+                Anda juga bisa <span className="font-semibold text-slate-900">mencoba dulu layanan ini</span> sebelum memutuskan berlangganan, sehingga bisa menilai apakah GuruKit cocok dengan kebutuhan Anda.
               </p>
             </div>
           </div>

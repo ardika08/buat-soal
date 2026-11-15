@@ -152,6 +152,6 @@ export function shouldReconcileOrder(orderStatus: string, providerOrderId: strin
  * diperiksa, sehingga pengguna yang sudah membayar tidak pernah melihat kreditnya masuk.
  */
 export function buildBillingReturnUrl(baseUrl: string | null | undefined, orderId: number) {
-  const base = (baseUrl ?? "").trim().replace(/\/+$/, "") || "https://soalify.app";
+  const base = (baseUrl ?? "").trim().replace(/\/+$/, "") || "https://gurukit.app";
   return `${base}/billing/return?order_id=${encodeURIComponent(String(orderId))}`;
 }

@@ -1,6 +1,6 @@
-# Soalify
+# GuruKit
 
-Soalify memakai React + Vite untuk frontend, dengan Supabase untuk Auth, PostgreSQL, Storage, dan Edge Functions.
+GuruKit memakai React + Vite untuk frontend, dengan Supabase untuk Auth, PostgreSQL, Storage, dan Edge Functions.
 
 ## Environment Frontend
 

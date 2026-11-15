@@ -128,7 +128,7 @@ Deno.serve(async (request) => {
       invoice = await createDuitkuInvoice({
         orderId: Number(order.id),
         amount: resolved.amount,
-        productDetails: `${resolved.name} - ${resolved.credits} kredit Soalify`,
+        productDetails: `${resolved.name} - ${resolved.credits} kredit GuruKit`,
         customerName,
         email: customerEmail,
         phoneNumber: customerMobile,
@@ -232,7 +232,7 @@ function buildRedirectUrl(request: Request, orderId: number) {
     const base = new URL(origin).origin;
     return buildBillingReturnUrl(base, orderId);
   } catch {
-    return buildBillingReturnUrl("https://soalify.app", orderId);
+    return buildBillingReturnUrl("https://gurukit.app", orderId);
   }
 }
 

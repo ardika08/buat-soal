@@ -49,7 +49,7 @@ export default function WorkspaceSidebar({ className, onNavigate }: WorkspaceSid
             <BrainCircuit className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
           <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-lg font-bold text-transparent">
-            Soalify
+            GuruKit
           </span>
         </Link>
       </div>

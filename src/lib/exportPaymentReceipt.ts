@@ -17,7 +17,7 @@ export function exportPaymentReceipt(order: PaymentOrder): void {
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  pdf.text("Soalify", 18, 16);
+  pdf.text("GuruKit", 18, 16);
   pdf.setFontSize(11);
   pdf.setFont("helvetica", "normal");
   pdf.text("Bukti Pembayaran", 18, 25);
@@ -30,7 +30,7 @@ export function exportPaymentReceipt(order: PaymentOrder): void {
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(71, 85, 105);
-  pdf.text("Dokumen ini merupakan bukti pembayaran layanan Soalify.", 18, 60);
+  pdf.text("Dokumen ini merupakan bukti pembayaran layanan GuruKit.", 18, 60);
 
   const rows: Array<[string, string]> = [
     ["Nomor invoice", invoice],
