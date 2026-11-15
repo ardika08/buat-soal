@@ -203,17 +203,17 @@ function BillingPackagesPanel({
 
       <div className={standalone ? "mb-4" : "px-6"}>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "topup" | "subscription")}>
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <TabsList className="grid w-full grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-slate-100 p-1">
             <TabsTrigger
               value="topup"
-              className="min-h-10 rounded-lg font-semibold text-slate-600 data-[active]:border-slate-200/80 data-[active]:bg-white data-[active]:text-slate-900 data-[active]:shadow-sm"
+              className="h-10 rounded-lg font-semibold"
             >
               <Zap className="h-4 w-4 text-amber-600" aria-hidden="true" />
               Top Up Kredit
             </TabsTrigger>
             <TabsTrigger
               value="subscription"
-              className="min-h-10 rounded-lg font-semibold text-slate-600 data-[active]:border-slate-200/80 data-[active]:bg-white data-[active]:text-slate-900 data-[active]:shadow-sm"
+              className="h-10 rounded-lg font-semibold"
             >
               <Crown className="h-4 w-4 text-indigo-600" aria-hidden="true" />
               Langganan
