@@ -46,38 +46,42 @@ export default function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar: hanya identitas + info akun. Navigasi utama ada di sidebar. */}
         <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md shadow-sm">
-          <div className="container mx-auto flex h-16 items-center gap-3 px-4">
+          <div className="container mx-auto flex h-16 items-center gap-2 px-4 sm:gap-3">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Buka menu"
               aria-expanded={mobileNavOpen}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 lg:hidden"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 lg:hidden"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
             <Link
               to={HOME_PATH}
-              className="flex items-center gap-2 rounded-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 motion-safe:hover:scale-105 motion-safe:active:scale-[0.96] lg:hidden"
+              className="flex shrink-0 items-center gap-2 rounded-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 motion-safe:hover:scale-105 motion-safe:active:scale-[0.96] lg:hidden"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-200">
-                <BrainCircuit className="h-6 w-6 text-white" aria-hidden="true" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-200 sm:h-10 sm:w-10">
+                <BrainCircuit className="h-5 w-5 text-white sm:h-6 sm:w-6" aria-hidden="true" />
               </div>
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent">
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-lg font-bold text-transparent sm:text-xl">
                 GuruKit
               </span>
             </Link>
 
-            <div className="ml-auto flex items-center gap-3 sm:gap-4">
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
               {/* Credits Badge */}
               <Link
                 to="/transactions"
-                className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-800 shadow-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 motion-safe:hover:-translate-y-0.5"
-                title="Lihat riwayat kredit"
+                aria-label={`${(user?.credits_balance ?? 0).toLocaleString("id-ID")} Kredit — lihat riwayat kredit`}
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 shadow-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 motion-safe:hover:-translate-y-0.5 sm:px-3 sm:py-1.5 sm:text-sm"
+                title={`${(user?.credits_balance ?? 0).toLocaleString("id-ID")} Kredit — lihat riwayat kredit`}
               >
-                <Coins className="h-4 w-4" aria-hidden="true" />
-                <span className="text-sm font-semibold tabular-nums">{user?.credits_balance ?? 0} Kredit</span>
+                <Coins className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                <span className="tabular-nums">
+                  {(user?.credits_balance ?? 0).toLocaleString("id-ID")}
+                  <span className="hidden min-[380px]:inline"> Kredit</span>
+                </span>
               </Link>
 
               <Link
