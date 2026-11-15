@@ -40,8 +40,12 @@ interface GeneratedQuestion {
   illustration_image?: string | null;
 }
 
-const MAX_ILLUSTRATIONS = Number(Deno.env.get("AI_MAX_ILLUSTRATIONS_PER_EXAM") ?? "0");
-const MAX_QUESTIONS_PER_AI_REQUEST = Number(Deno.env.get("AI_MAX_QUESTIONS_PER_REQUEST") ?? "15");
+function getEnv(key: string): string | undefined {
+  return (globalThis as { Deno?: { env?: { get(k: string): string | undefined } } }).Deno?.env?.get(key);
+}
+
+const MAX_ILLUSTRATIONS = Number(getEnv("AI_MAX_ILLUSTRATIONS_PER_EXAM") ?? "0");
+const MAX_QUESTIONS_PER_AI_REQUEST = Number(getEnv("AI_MAX_QUESTIONS_PER_REQUEST") ?? "15");
 
 function automaticIllustrationCount(multipleChoiceCount: number) {
   const recommended = Math.max(3, Math.round(multipleChoiceCount / 6));
@@ -174,7 +178,7 @@ async function capaianWithGemini(data: GenerateExamPayload) {
     throw new Error("Gemini API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 async function capaianWithOpenAi(data: GenerateExamPayload) {
@@ -227,7 +231,7 @@ async function capaianWithOpenAi(data: GenerateExamPayload) {
     throw new Error("OpenAI API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 async function generateQuestionBatch(
@@ -236,21 +240,43 @@ async function generateQuestionBatch(
   data: GenerateExamPayload,
   total: number,
 ) {
+  const expectedTypes = expectedTypesFromFormats(data.formats);
+  const collected: GeneratedQuestion[] = [];
   let lastError: unknown = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
+
+  for (let attempt = 0; attempt < 3 && collected.length < total; attempt++) {
+    const remainingTypes = expectedTypes.slice(collected.length);
+    const remainingFormats = formatsFromExpectedTypes(remainingTypes);
+    const remainingTotal = remainingTypes.length;
+    const attemptData: GenerateExamPayload = {
+      ...data,
+      formats: remainingFormats,
+    };
+
     try {
       const payload = provider === "anthropic"
-        ? await generateWithAnthropic(data, total, premium)
+        ? await generateWithAnthropic(attemptData, remainingTotal, premium)
         : provider === "openai"
-          ? await generateWithOpenAi(data, total)
-          : await generateWithGemini(data, total);
-      return validateQuestions(payload, data, total);
+          ? await generateWithOpenAi(attemptData, remainingTotal)
+          : await generateWithGemini(attemptData, remainingTotal);
+
+      const validBatch = extractValidQuestions(payload, remainingTypes);
+      if (validBatch.length === 0) {
+        throw new Error("Jumlah soal dari AI tidak sesuai permintaan.");
+      }
+      collected.push(...validBatch);
     } catch (error) {
       lastError = error;
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error("Output AI tidak valid.");
+  if (collected.length < total) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Jumlah soal dari AI tidak sesuai permintaan.");
+  }
+
+  return collected.slice(0, total);
 }
 
 export async function attachIllustrationImages(
@@ -347,7 +373,7 @@ async function generateWithGemini(data: GenerateExamPayload, total: number) {
     throw new Error("Gemini API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
@@ -409,7 +435,7 @@ async function generateWithOpenAi(data: GenerateExamPayload, total: number) {
     throw new Error("OpenAI API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 async function generateWithAnthropic(data: GenerateExamPayload, total: number, premium: boolean) {
@@ -457,7 +483,7 @@ async function generateWithAnthropic(data: GenerateExamPayload, total: number, p
     throw new Error("Anthropic API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 async function capaianWithAnthropic(data: GenerateExamPayload, premium: boolean) {
@@ -500,7 +526,7 @@ async function capaianWithAnthropic(data: GenerateExamPayload, premium: boolean)
     throw new Error("Anthropic API tidak mengembalikan teks JSON.");
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
 // Anthropic Messages API tidak punya native JSON schema enforcement (seperti
@@ -606,7 +632,8 @@ function buildPrompt(data: GenerateExamPayload, total: number) {
     topics: data.topics,
     formats: data.formats,
     rules: [
-      "Jumlah item questions harus sama persis dengan total_questions.",
+      `WAJIB menghasilkan tepat ${total} objek di dalam array questions (tidak boleh kurang atau lebih dari ${total}).`,
+      `Rincian format berurutan: ${data.formats.map((f) => `${f.count} soal ${f.label}`).join(", ")}.`,
       "Ikuti urutan format soal sesuai urutan formats pada input. Kelompokkan soal berdasarkan format agar naskah mudah diekspor per bagian.",
       "Jika reference_text tersedia, gunakan sebagai sumber materi utama.",
       "Jika file PDF tersedia di input provider, gunakan isi PDF sebagai sumber materi utama.",
@@ -681,24 +708,39 @@ function questionSchema() {
   };
 }
 
-function validateQuestions(payload: unknown, data: GenerateExamPayload, total: number): GeneratedQuestion[] {
+export function extractValidQuestions(
+  payload: unknown,
+  expectedTypes: Array<{ id: string; label: string }>,
+): GeneratedQuestion[] {
   const questions = (payload as { questions?: unknown })?.questions;
-  if (!Array.isArray(questions) || questions.length !== total) {
+  if (!Array.isArray(questions) || questions.length === 0) {
     throw new Error("Jumlah soal dari AI tidak sesuai permintaan.");
   }
 
-  const expectedTypes = expectedTypesFromFormats(data.formats);
-  return questions.map((rawQuestion, index) => {
-    const question = rawQuestion as Partial<GeneratedQuestion>;
+  const limit = Math.min(questions.length, expectedTypes.length);
+  const valid: GeneratedQuestion[] = [];
+  let firstError: Error | null = null;
+
+  for (let index = 0; index < limit; index++) {
+    const question = questions[index] as Partial<GeneratedQuestion>;
+    const expected = expectedTypes[index];
+
+    let hasMissingField = false;
     for (const field of ["question_type", "cognitive_level", "difficulty", "question_content", "correct_answer"] as const) {
-      if (typeof question[field] !== "string" || question[field]?.trim() === "") {
-        throw new Error(`Field ${field} wajib diisi.`);
+      if (typeof question?.[field] !== "string" || question[field]?.trim() === "") {
+        firstError ??= new Error(`Field ${field} wajib diisi.`);
+        hasMissingField = true;
+        break;
       }
     }
+    if (hasMissingField) {
+      break;
+    }
 
-    const requiresOptions = ["pg", "pgk"].includes(expectedTypes[index]?.id ?? "");
-    if (requiresOptions && (!question.options || Object.keys(question.options).length < 2)) {
-      throw new Error("Pilihan jawaban wajib ada untuk PG/PGK.");
+    const requiresOptions = ["pg", "pgk"].includes(expected?.id ?? "");
+    if (requiresOptions && (!question.options || typeof question.options !== "object" || Object.keys(question.options).length < 2)) {
+      firstError ??= new Error("Pilihan jawaban wajib ada untuk PG/PGK.");
+      break;
     }
 
     let options = question.options && typeof question.options === "object" ? question.options : null;
@@ -707,8 +749,8 @@ function validateQuestions(payload: unknown, data: GenerateExamPayload, total: n
       [options, answer] = shuffleOptions(options, answer);
     }
 
-    return {
-      question_type: question.question_type ?? "",
+    valid.push({
+      question_type: expected?.label || (question.question_type ?? ""),
       cognitive_level: question.cognitive_level ?? "",
       difficulty: question.difficulty ?? "",
       question_content: question.question_content ?? "",
@@ -717,11 +759,30 @@ function validateQuestions(payload: unknown, data: GenerateExamPayload, total: n
       illustration_prompt: typeof question.illustration_prompt === "string" && question.illustration_prompt.trim() !== ""
         ? question.illustration_prompt
         : null,
-    };
-  });
+    });
+  }
+
+  if (valid.length === 0 && firstError) {
+    throw firstError;
+  }
+
+  return valid;
 }
 
-function expectedTypesFromFormats(formats: GenerateExamPayload["formats"]) {
+export function formatsFromExpectedTypes(expectedTypes: Array<{ id: string; label: string }>): GenerateExamPayload["formats"] {
+  const formats: GenerateExamPayload["formats"] = [];
+  for (const item of expectedTypes) {
+    const last = formats[formats.length - 1];
+    if (last && last.id === item.id) {
+      last.count += 1;
+    } else {
+      formats.push({ id: item.id, label: item.label, count: 1 });
+    }
+  }
+  return formats;
+}
+
+export function expectedTypesFromFormats(formats: GenerateExamPayload["formats"]) {
   const types: Array<{ id: string; label: string }> = [];
   for (const format of formats) {
     for (let index = 0; index < Number(format.count); index++) {
@@ -835,6 +896,25 @@ function extractOpenAiText(payload: unknown) {
   }
 
   return null;
+}
+
+export function parseJsonResponse(raw: string): unknown {
+  const trimmed = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(trimmed.slice(start, end + 1));
+    }
+    throw new Error("Respons AI bukan JSON valid.");
+  }
 }
 
 function decodeBase64(base64: string) {
