@@ -218,7 +218,7 @@ export default function EModulPreview() {
   if (hasValidId && isLoading) {
     return (
       <div className="mx-auto flex max-w-3xl items-center justify-center py-24 text-slate-500">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Loader2 className="mr-2 h-5 w-5 animate-spin motion-reduce:animate-none" />
         Memuat pratinjau...
       </div>
     );
@@ -243,7 +243,7 @@ export default function EModulPreview() {
   const draft = detail.eModul;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <Link to={editorPath}>
@@ -268,7 +268,7 @@ export default function EModulPreview() {
             }
           >
             {downloading === "pdf"
-              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin motion-reduce:animate-none" />
               : isPremiumActive
                 ? <FileDown className="mr-1.5 h-4 w-4" />
                 : <Lock className="mr-1.5 h-4 w-4" />}
@@ -287,7 +287,7 @@ export default function EModulPreview() {
             }
           >
             {downloading === "docx"
-              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin motion-reduce:animate-none" />
               : isPremiumActive
                 ? <FileDown className="mr-1.5 h-4 w-4" />
                 : <Lock className="mr-1.5 h-4 w-4" />}

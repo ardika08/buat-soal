@@ -69,7 +69,7 @@ export default function EbookAccess() {
       : "Paket Dasar";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-slate-900">Akses E-Book</h1>
         <p className="text-sm text-slate-500">
@@ -144,7 +144,7 @@ export default function EbookAccess() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {BENEFITS.map((benefit) => (
-            <div key={benefit.title} className="rounded-xl border bg-white p-4 shadow-sm">
+            <div key={benefit.title} className="rounded-2xl border bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
                   <benefit.icon className="h-4 w-4" />

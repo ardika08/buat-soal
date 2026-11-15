@@ -98,7 +98,7 @@ export default function SubscriptionPlans() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="space-y-2">
         <Link to={EMODUL_ACCESS_PATH}>
           <Button variant="ghost" className="mb-1 text-slate-500 hover:text-slate-900">

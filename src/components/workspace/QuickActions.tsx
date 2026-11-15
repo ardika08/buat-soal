@@ -11,19 +11,19 @@ import { EMODUL_NEW_PATH } from "@/lib/routes";
 export default function QuickActions() {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link to="/generate">
+      <Link to="/generate" className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
         <Button size="lg" className="h-11 rounded-full bg-indigo-600 px-5 font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700">
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           Buat Soal Baru
         </Button>
       </Link>
-      <Link to={EMODUL_NEW_PATH}>
+      <Link to={EMODUL_NEW_PATH} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
         <Button
           size="lg"
           variant="outline"
-          className="h-11 rounded-full border-emerald-200 bg-emerald-50 px-5 font-semibold text-emerald-700 hover:bg-emerald-100"
+          className="h-11 rounded-full border-emerald-200 bg-emerald-50 px-5 font-semibold text-emerald-800 hover:bg-emerald-100"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           Buat E-Modul Baru
         </Button>
       </Link>

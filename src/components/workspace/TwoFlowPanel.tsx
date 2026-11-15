@@ -22,7 +22,7 @@ export default function TwoFlowPanel() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Alur Soal</h2>
-              <p className="text-sm text-slate-500">Naskah ujian &amp; bank soal</p>
+              <p className="text-sm text-slate-600">Naskah ujian &amp; bank soal</p>
             </div>
           </div>
 
@@ -48,7 +48,7 @@ export default function TwoFlowPanel() {
       </div>
 
       {/* Alur E-book */}
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/60 p-6 shadow-sm transition-shadow hover:shadow-md sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/60 p-6 shadow-sm transition-shadow hover:shadow-md sm:p-8">
         <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-100/60" aria-hidden="true" />
         <div className="relative z-10 space-y-5">
           <div className="flex items-center gap-3">
@@ -57,7 +57,7 @@ export default function TwoFlowPanel() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Alur E-book</h2>
-              <p className="text-sm text-slate-500">E-modul &amp; bahan ajar</p>
+              <p className="text-sm text-slate-600">E-modul &amp; bahan ajar</p>
             </div>
           </div>
 
@@ -67,13 +67,13 @@ export default function TwoFlowPanel() {
 
           <div className="flex flex-wrap gap-3">
             <Link to={EMODUL_NEW_PATH}>
-              <Button className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
+              <Button className="rounded-full bg-emerald-700 text-white hover:bg-emerald-800">
                 Mulai E-Modul
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
             <Link to={EMODUL_PATH}>
-              <Button variant="ghost" className="rounded-full text-emerald-700 hover:bg-emerald-50">
+              <Button variant="ghost" className="rounded-full text-emerald-800 hover:bg-emerald-50">
                 <BookMarked className="mr-1.5 h-4 w-4" />
                 Pustaka Materi
               </Button>

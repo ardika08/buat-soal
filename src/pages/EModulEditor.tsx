@@ -403,7 +403,7 @@ export default function EModulEditor() {
   if (hasValidId && isLoading) {
     return (
       <div className="mx-auto flex max-w-3xl items-center justify-center py-24 text-slate-500">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Loader2 className="mr-2 h-5 w-5 animate-spin motion-reduce:animate-none" />
         Memuat e-modul...
       </div>
     );
@@ -436,7 +436,7 @@ export default function EModulEditor() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       {/* Header draf */}
       <div className="space-y-3">
         <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -464,7 +464,7 @@ export default function EModulEditor() {
             }`}
           >
             {isDirty ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             ) : savedAt ? (
               <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
             ) : (
@@ -742,7 +742,7 @@ export default function EModulEditor() {
                           title="Buat ulang bagian ini (AI)"
                         >
                           {regeneratingId === section.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
                           ) : (
                             <RefreshCw className="h-3.5 w-3.5" />
                           )}

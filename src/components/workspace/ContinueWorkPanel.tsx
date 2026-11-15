@@ -13,11 +13,11 @@ function formatDate(value: string) {
     return value;
   }
 
-  return date.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
 }
 
 interface ContinueWorkPanelProps {
@@ -44,23 +44,23 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
         {/* Draf Soal Terakhir */}
         <Card className="border-none shadow-md shadow-slate-200/50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Draf Soal Terakhir</CardTitle>
-            <FileText className="h-4 w-4 text-indigo-500" />
+            <CardTitle className="text-sm font-medium text-slate-600">Draf Soal Terakhir</CardTitle>
+            <FileText className="h-4 w-4 text-indigo-600" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             {examDraft ? (
               <div className="space-y-3">
                 <div>
-                  <p className="font-semibold text-slate-900">{examDraft.subject}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="break-words font-semibold text-slate-900">{examDraft.subject}</p>
+                  <p className="text-xs text-slate-600">
                     {examDraft.class_phase} · {examDraft.exam_type}
                   </p>
                 </div>
-                <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                <p className="flex items-center gap-1.5 text-xs text-slate-600">
                   <Clock className="h-3.5 w-3.5" />
                   Dibuat {formatDate(examDraft.created_at)}
                 </p>
@@ -73,7 +73,7 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
               </div>
             ) : (
               <div className="space-y-3 py-4 text-center">
-                <p className="text-sm text-slate-500">Belum ada draf soal.</p>
+                <p className="text-sm text-slate-600">Belum ada draf soal.</p>
                 <Link to="/generate">
                   <Button variant="outline" className="rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-50">
                     <Plus className="mr-1.5 h-4 w-4" />
@@ -88,15 +88,15 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
         {/* Draf E-Modul Terakhir */}
         <Card className="border-none shadow-md shadow-slate-200/50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Draf E-Modul Terakhir</CardTitle>
-            <BookOpen className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-sm font-medium text-slate-600">Draf E-Modul Terakhir</CardTitle>
+            <BookOpen className="h-4 w-4 text-emerald-700" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             {eModulDraft ? (
               <div className="space-y-3">
                 <div>
-                  <p className="font-semibold text-slate-900">{eModulDraft.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="break-words font-semibold text-slate-900">{eModulDraft.title}</p>
+                  <p className="text-xs text-slate-600">
                     {eModulDraft.subject} · {eModulDraft.fase} {eModulDraft.kelas}
                   </p>
                 </div>
@@ -108,7 +108,7 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
                     </span>
                     <span
                       className={`font-semibold ${
-                        eModulDraft.status === "ready" ? "text-emerald-600" : "text-amber-600"
+                        eModulDraft.status === "ready" ? "text-emerald-700" : "text-amber-700"
                       }`}
                     >
                       {eModulDraft.status === "ready" ? "Siap" : "Draf"}
@@ -116,7 +116,7 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
                   </div>
                 </div>
 
-                <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                <p className="flex items-center gap-1.5 text-xs text-slate-600">
                   <Clock className="h-3.5 w-3.5" />
                   Diperbarui {formatDate(eModulDraft.updatedAt)}
                 </p>
@@ -130,7 +130,7 @@ export default function ContinueWorkPanel({ examDraft, eModulDraft }: ContinueWo
               </div>
             ) : (
               <div className="space-y-3 py-4 text-center">
-                <p className="text-sm text-slate-500">Belum ada draf e-modul.</p>
+                <p className="text-sm text-slate-600">Belum ada draf e-modul.</p>
                   <Link to={EMODUL_NEW_PATH}>
                   <Button variant="outline" className="rounded-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                     <Plus className="mr-1.5 h-4 w-4" />

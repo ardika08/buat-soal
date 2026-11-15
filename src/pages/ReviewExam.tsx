@@ -866,13 +866,13 @@ export default function ReviewExam() {
 
                     {/* Illustration */}
                     {(q.illustration_image || q.illustration_prompt) && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
                         <p className="text-xs text-blue-600 font-semibold">Ilustrasi Soal</p>
                         {q.illustration_image && (
                           <img
                             src={q.illustration_image}
                             alt={`Ilustrasi soal ${q.order_number}`}
-                            className="max-h-80 w-full rounded-lg border border-blue-100 object-contain bg-white"
+                            className="max-h-80 w-full rounded-lg bg-white object-contain outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
                           />
                         )}
                         {q.illustration_prompt && (
@@ -961,7 +961,7 @@ export default function ReviewExam() {
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />Tidak ditemukan jawaban ambigu atau soal duplikat.
                   </p>
                 ) : (
-                  <div className="mt-2 max-h-40 space-y-2 overflow-y-auto">
+                  <div className="mt-2 max-h-40 space-y-2 overflow-y-auto overscroll-contain">
                     {quality.warnings.map((warning, index) => (
                       <p key={`${warning.kind}-${warning.questionNumbers.join("-")}-${index}`} className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs leading-5 text-amber-800">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{warning.message}
@@ -1053,7 +1053,7 @@ export default function ReviewExam() {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto overscroll-contain sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Pratinjau Dokumen Soal</DialogTitle>
             <DialogDescription>Periksa kop sekolah dan tampilan soal sebelum mengunduh.</DialogDescription>
@@ -1084,7 +1084,7 @@ export default function ReviewExam() {
             {visibleQuestions.map((question, index) => (
               <article key={question.id} className="border-b border-slate-100 pb-3">
                 <p><strong>{index + 1}.</strong> {question.question_content}</p>
-                {question.illustration_image && <img src={question.illustration_image} alt={`Ilustrasi soal ${index + 1}`} className="my-2 max-h-48 max-w-full object-contain" />}
+                {question.illustration_image && <img src={question.illustration_image} alt={`Ilustrasi soal ${index + 1}`} className="my-2 max-h-48 max-w-full rounded-lg object-contain outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10" />}
                 {question.options && <ul className="ml-5 list-disc">{Object.entries(question.options).map(([key, value]) => <li key={key}>{key}. {value}</li>)}</ul>}
               </article>
             ))}

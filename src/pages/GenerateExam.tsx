@@ -364,7 +364,7 @@ export default function GenerateExam() {
           <div className="w-full max-w-md rounded-2xl border border-white/20 bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -387,7 +387,7 @@ export default function GenerateExam() {
 
             <div className="h-3 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-700"
+                className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-[width] duration-700 ease-out motion-reduce:transition-none"
                 style={{ width: `${generateProgress}%` }}
               />
             </div>
@@ -438,7 +438,7 @@ export default function GenerateExam() {
       <div className="flex items-center justify-between relative mb-12">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 rounded-full z-0"></div>
         <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full z-0 transition-all duration-500"
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full z-0 transition-[width] duration-500 ease-out motion-reduce:transition-none"
           style={{ width: `${((step - 1) / 2) * 100}%` }}
         ></div>
 
@@ -473,7 +473,7 @@ export default function GenerateExam() {
       <div className="bg-white rounded-2xl shadow-sm border p-6 md:p-8 min-h-[400px]">
         {/* STEP 1: DASAR */}
         {step === 1 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="text-xl font-bold border-b pb-4">Informasi Dasar</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -685,7 +685,7 @@ export default function GenerateExam() {
 
         {/* STEP 2: MATERI */}
         {step === 2 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="text-xl font-bold border-b pb-4">
               Materi Pembelajaran
             </h2>
@@ -879,7 +879,7 @@ export default function GenerateExam() {
 
         {/* STEP 3: KRITERIA */}
         {step === 3 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="text-xl font-bold border-b pb-4">Kriteria Soal</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1059,8 +1059,8 @@ export default function GenerateExam() {
             className="w-40 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg text-white"
           >
             {isGenerating ? (
-              <span className="flex items-center animate-pulse">
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...
+              <span className="flex items-center motion-safe:animate-pulse">
+                <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" /> Memproses...
               </span>
             ) : (
               <span className="flex items-center">

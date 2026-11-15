@@ -7,7 +7,7 @@ export default function NotFound() {
   const { pathname } = useLocation();
 
   return (
-    <div className="mx-auto max-w-xl py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-xl py-16 text-center animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
         <SearchX className="h-8 w-8" />
       </div>

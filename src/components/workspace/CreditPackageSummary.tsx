@@ -30,33 +30,34 @@ export default function CreditPackageSummary({
   const packageLabel = isPremium ? "Premium Aktif" : hasPurchasedCredits ? "Kredit Top-Up" : "Paket Dasar";
   const packageBadge = isPremium ? "PREMIUM" : hasPurchasedCredits ? "AKTIF" : "FREE";
   const packageBadgeClass = isPremium
-    ? "bg-purple-200 text-purple-800"
+    ? "bg-purple-200 text-purple-900"
     : hasPurchasedCredits
-      ? "bg-emerald-200 text-emerald-800"
-      : "bg-indigo-200 text-indigo-800";
+      ? "bg-emerald-200 text-emerald-900"
+      : "bg-indigo-200 text-indigo-900";
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
       <Card className="border-none shadow-md shadow-slate-200/50 transition-shadow hover:shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-slate-500">Total Soal Dibuat</CardTitle>
-          <FileText className="h-4 w-4 text-indigo-500" />
+          <CardTitle className="text-sm font-medium text-slate-600">Total Soal Dibuat</CardTitle>
+          <FileText className="h-4 w-4 text-indigo-600" aria-hidden="true" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-slate-900">{totalQuestions}</div>
-          <p className="mt-1 text-xs text-slate-500">Dari riwayat tersimpan</p>
+          <div className="text-3xl font-bold tabular-nums text-slate-900">{totalQuestions}</div>
+          <p className="mt-1 text-xs text-slate-600">Dari riwayat tersimpan</p>
         </CardContent>
       </Card>
 
       <Card className="border-none shadow-md shadow-slate-200/50 transition-shadow hover:shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-slate-500">Sisa Kredit</CardTitle>
-          <Zap className="h-4 w-4 text-amber-500" />
+          <CardTitle className="text-sm font-medium text-slate-600">Sisa Kredit</CardTitle>
+          <Zap className="h-4 w-4 text-amber-700" aria-hidden="true" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-slate-900">{creditsBalance}</div>
+          <div className="text-3xl font-bold tabular-nums text-slate-900">{creditsBalance}</div>
           <button
-            className="mt-1 flex cursor-pointer items-center gap-1 text-xs text-amber-600 hover:underline"
+            type="button"
+            className="mt-1 flex cursor-pointer items-center gap-1 rounded text-xs text-amber-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
             onClick={onTopUp}
           >
             Top up kredit
@@ -66,7 +67,7 @@ export default function CreditPackageSummary({
 
       <Card className="border-none bg-gradient-to-br from-indigo-50 to-purple-50 shadow-md shadow-slate-200/50 transition-shadow hover:shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-indigo-700">Paket Aktif</CardTitle>
+          <CardTitle className="text-sm font-medium text-indigo-800">Paket Aktif</CardTitle>
           <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${packageBadgeClass}`}>
             {packageBadge}
           </div>
@@ -74,7 +75,8 @@ export default function CreditPackageSummary({
         <CardContent>
           <div className="text-lg font-bold text-slate-900">{packageLabel}</div>
           <button
-            className="mt-1 cursor-pointer text-xs text-indigo-600 hover:underline"
+            type="button"
+            className="mt-1 cursor-pointer rounded text-xs text-indigo-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
             onClick={onUpgrade}
           >
             {isPremium ? "Perpanjang Premium" : "Upgrade ke Premium"}

@@ -42,7 +42,7 @@ export default function EModulLibrary() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Pustaka E-Modul</h1>
@@ -58,7 +58,7 @@ export default function EModulLibrary() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16 text-slate-500">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          <Loader2 className="mr-2 h-5 w-5 animate-spin motion-reduce:animate-none" />
           Memuat e-modul...
         </div>
       )}
@@ -94,7 +94,7 @@ export default function EModulLibrary() {
             <li key={item.id}>
               <Link
                 to={`${EMODUL_PATH}/${item.id}`}
-                className="group flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-sm transition-all hover:border-emerald-200 hover:shadow-md"
+                className="group flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 ease-out hover:border-emerald-200 hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
@@ -123,7 +123,7 @@ export default function EModulLibrary() {
 
                 <span className="inline-flex items-center text-sm font-semibold text-emerald-700">
                   Buka editor
-                  <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-150 ease-out motion-safe:group-hover:translate-x-0.5" />
                 </span>
               </Link>
             </li>

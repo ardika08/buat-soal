@@ -47,7 +47,7 @@ export default function DeleteExamDialog({ exam, isDeleting, errorMessage, onCan
             Batal
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={isDeleting} className="bg-red-600 text-white hover:bg-red-700">
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Trash2 className="h-4 w-4" />}
             {isDeleting ? "Menghapus..." : "Hapus"}
           </Button>
         </div>

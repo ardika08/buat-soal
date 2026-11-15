@@ -19,7 +19,7 @@ interface ModulePlaceholderProps {
  */
 export default function ModulePlaceholder({ icon: Icon, title, description, children }: ModulePlaceholderProps) {
   return (
-    <div className="mx-auto max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-2xl animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="rounded-3xl border bg-white p-8 text-center shadow-sm">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
           <Icon className="h-7 w-7" />

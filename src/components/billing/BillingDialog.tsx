@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { billingApi, type BillingPackage, type BillingCheckoutResponse, CUSTOM_CREDIT_RATE, CUSTOM_TOPUP_MIN, CUSTOM_TOPUP_MAX } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -62,13 +63,17 @@ function BillingPackagesPanel({
   const [customCredits, setCustomCredits] = useState<number>(50);
 
   useEffect(() => {
+    if (standalone) {
+      return;
+    }
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, []);
+  }, [standalone]);
 
   useEffect(() => {
     let isActive = true;
@@ -146,7 +151,10 @@ function BillingPackagesPanel({
       setError("Checkout dibuat, tetapi link pembayaran tidak ditemukan.");
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: string } } };
-      setError(apiError.response?.data?.message ?? "Checkout Duitku gagal dibuat.");
+      setError(
+        apiError.response?.data?.message ??
+          "Checkout pembayaran gagal dibuat. Periksa kembali data pembeli lalu coba lagi.",
+      );
     } finally {
       setProcessingId(null);
     }
@@ -175,97 +183,115 @@ function BillingPackagesPanel({
       {standalone ? (
         <div className="mb-2">
           <h1 className="text-2xl font-bold text-slate-900">Top Up Kredit</h1>
-          <p className="mt-1 text-sm text-slate-500">Pilih paket kredit atau tentukan jumlah top-up yang Anda butuhkan.</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Pilih paket kredit atau tentukan jumlah top-up yang Anda butuhkan.
+          </p>
         </div>
       ) : (
-        <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogHeader className="px-6 pb-2 pt-6">
           <DialogTitle className="text-xl font-bold">Pilih Paket</DialogTitle>
-        <DialogDescription>
-          Top up untuk kebutuhan cepat, atau langganan premium untuk kuota besar dan model AI terbaik.
-        </DialogDescription>
-      </DialogHeader>
+          <DialogDescription className="text-slate-600">
+            Top up untuk kebutuhan cepat, atau langganan premium untuk kuota besar dan model AI terbaik.
+          </DialogDescription>
+        </DialogHeader>
       )}
 
       <div className={standalone ? "mb-4" : "px-6"}>
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-          <button
-            className={`h-10 rounded-lg text-sm font-semibold transition-colors ${activeTab === "topup" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-            onClick={() => setActiveTab("topup")}
-          >
-            <Zap className="inline h-4 w-4 mr-1 text-amber-500" />
-            Top Up Kredit
-          </button>
-          <button
-            className={`h-10 rounded-lg text-sm font-semibold transition-colors ${activeTab === "subscription" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-            onClick={() => setActiveTab("subscription")}
-          >
-            <Crown className="inline h-4 w-4 mr-1 text-indigo-500" />
-            Langganan
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "topup" | "subscription")}>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+            <TabsTrigger value="topup" className="min-h-10 rounded-lg text-slate-700 data-active:text-slate-900">
+              <Zap className="h-4 w-4 text-amber-700" aria-hidden="true" />
+              Top Up Kredit
+            </TabsTrigger>
+            <TabsTrigger value="subscription" className="min-h-10 rounded-lg text-slate-700 data-active:text-slate-900">
+              <Crown className="h-4 w-4 text-indigo-700" aria-hidden="true" />
+              Langganan
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className={standalone ? "space-y-4" : "px-6 pb-6 pt-4 space-y-4"}>
-        <div className="rounded-xl border bg-slate-50 p-4">
-          <label htmlFor="billing-name" className="block text-sm font-semibold text-slate-900">
+        <fieldset className="rounded-xl border bg-slate-50 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-900">
             Data pembeli untuk checkout
-          </label>
-          <p className="mt-1 text-xs text-slate-500">
+          </legend>
+          <p className="mt-1 text-xs text-slate-600">
             Data ini akan dikirim ke Duitku untuk membuat checkout pembayaran.
           </p>
+          <label htmlFor="billing-name" className="mt-3 block text-xs font-medium text-slate-700">
+            Nama lengkap
+          </label>
           <Input
             id="billing-name"
-            className="mt-3 bg-white"
+            name="name"
+            autoComplete="name"
+            className="mt-1 bg-white"
             placeholder="Nama lengkap"
             value={customerName}
             onChange={(event) => setCustomerName(event.target.value)}
           />
+          <label htmlFor="billing-email" className="mt-3 block text-xs font-medium text-slate-700">
+            Email aktif
+          </label>
           <Input
             id="billing-email"
+            name="email"
             type="email"
-            className="mt-3 bg-white"
-            placeholder="Email aktif"
+            autoComplete="email"
+            className="mt-1 bg-white"
+            placeholder="nama@contoh.com"
             value={customerEmail}
             onChange={(event) => setCustomerEmail(event.target.value)}
           />
+          <label htmlFor="billing-mobile" className="mt-3 block text-xs font-medium text-slate-700">
+            Nomor WhatsApp
+          </label>
           <Input
             id="billing-mobile"
-            className="mt-3 bg-white"
-            placeholder="Contoh: 081234567890"
+            name="mobile"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            className="mt-1 bg-white"
+            placeholder="081234567890"
             value={customerMobile}
             onChange={(event) => setCustomerMobile(event.target.value)}
           />
-        </div>
+        </fieldset>
 
         {message && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
-            <CheckCircle2 className="h-4 w-4" />
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
             {message}
           </div>
         )}
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">
             {error}
           </div>
         )}
 
         {isLoading ? (
-          <div className="grid place-items-center py-10 text-slate-500">
-            <Loader2 className="mb-2 h-5 w-5 animate-spin" />
-            Memuat paket...
+          <div className="grid place-items-center py-10 text-slate-600">
+            <Loader2 className="mb-2 h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            <span role="status">Memuat paket…</span>
           </div>
         ) : activeTab === "topup" ? (
           <div className="rounded-xl border bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-bold text-slate-900">Top Up Kredit</h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-600">
                   Pilih jumlah kredit sesuai kebutuhan. Tarif flat {formatRupiah(CUSTOM_CREDIT_RATE)} per kredit.
                 </p>
               </div>
-              <div className="rounded-full bg-indigo-50 p-2 text-indigo-600">
-                <CreditCard className="h-5 w-5" />
+              <div className="rounded-full bg-indigo-50 p-2 text-indigo-700">
+                <CreditCard className="h-5 w-5" aria-hidden="true" />
               </div>
             </div>
 
@@ -276,7 +302,9 @@ function BillingPackagesPanel({
                 </label>
                 <Input
                   id="custom-credits"
+                  name="custom-credits"
                   type="number"
+                  inputMode="numeric"
                   min={CUSTOM_TOPUP_MIN}
                   max={CUSTOM_TOPUP_MAX}
                   step={10}
@@ -285,15 +313,15 @@ function BillingPackagesPanel({
                   value={Number.isFinite(customCredits) ? customCredits : ""}
                   onChange={(event) => setCustomCredits(Number(event.target.value))}
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Minimal {CUSTOM_TOPUP_MIN} dan maksimal {CUSTOM_TOPUP_MAX.toLocaleString("id-ID")} kredit.
                 </p>
               </div>
 
-              <div className="flex items-end justify-between">
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <div className="text-2xl font-bold text-slate-900">{formatRupiah(customAmount)}</div>
-                  <div className="mt-1 text-sm text-slate-500">
+                  <div className="text-2xl font-bold tabular-nums text-slate-900">{formatRupiah(customAmount)}</div>
+                  <div className="mt-1 text-sm tabular-nums text-slate-600">
                     {parsedCredits.toLocaleString("id-ID")} kredit × {formatRupiah(CUSTOM_CREDIT_RATE)}
                   </div>
                 </div>
@@ -302,7 +330,11 @@ function BillingPackagesPanel({
                   disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim() || !customCreditsValid}
                   className="bg-indigo-600 text-white hover:bg-indigo-700"
                 >
-                  {processingId === "custom-topup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                  {processingId === "custom-topup" ? (
+                    <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  ) : (
+                    <Wallet className="h-4 w-4" aria-hidden="true" />
+                  )}
                   Bayar
                 </Button>
               </div>
@@ -315,17 +347,21 @@ function BillingPackagesPanel({
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-bold text-slate-900">{item.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{item.description}</p>
+                    <p className="mt-1 text-sm text-slate-600">{item.description}</p>
                   </div>
-                  <div className="rounded-full bg-indigo-50 p-2 text-indigo-600">
-                    {item.type === "subscription" ? <Crown className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+                  <div className="rounded-full bg-indigo-50 p-2 text-indigo-700">
+                    {item.type === "subscription" ? (
+                      <Crown className="h-5 w-5" aria-hidden="true" />
+                    ) : (
+                      <CreditCard className="h-5 w-5" aria-hidden="true" />
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-end justify-between">
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <div className="text-2xl font-bold text-slate-900">{formatRupiah(item.price)}</div>
-                    <div className="mt-1 text-sm text-slate-500">
+                    <div className="text-2xl font-bold tabular-nums text-slate-900">{formatRupiah(item.price)}</div>
+                    <div className="mt-1 text-sm tabular-nums text-slate-600">
                       {item.credits.toLocaleString("id-ID")} kredit
                       {item.duration_months ? ` / ${item.duration_months} bulan` : ""}
                     </div>
@@ -335,7 +371,11 @@ function BillingPackagesPanel({
                     disabled={processingId !== null || !customerName.trim() || !customerEmail.trim() || !customerMobile.trim()}
                     className="bg-indigo-600 text-white hover:bg-indigo-700"
                   >
-                    {processingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                    {processingId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                    ) : (
+                      <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    )}
                     Bayar
                   </Button>
                 </div>
@@ -344,7 +384,7 @@ function BillingPackagesPanel({
           </div>
         )}
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Paket akan aktif otomatis setelah pembayaran Duitku terverifikasi.
         </p>
       </div>
@@ -354,7 +394,7 @@ function BillingPackagesPanel({
 
 export function BillingTopupPage({ defaultTab = "topup" }: BillingTopupPageProps) {
   return (
-    <div className="mx-auto max-w-4xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-4xl space-y-4 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <BillingPackagesPanel defaultTab={defaultTab} standalone />
     </div>
   );

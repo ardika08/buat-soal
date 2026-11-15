@@ -217,7 +217,7 @@ export default function EModulGenerator() {
             <h2 className="mt-4 font-bold text-slate-900">Menyusun e-modul...</h2>
             <p className="mt-1 text-sm text-slate-500">AI sedang merancang bab, subbab, dan latihan.</p>
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
             </div>
             <p className="mt-2 text-xs font-semibold text-emerald-600">{progress}%</p>
           </div>
@@ -240,7 +240,7 @@ export default function EModulGenerator() {
       <div className="relative mb-12 flex items-center justify-between">
         <div className="absolute left-0 top-1/2 z-0 h-1 w-full -translate-y-1/2 rounded-full bg-slate-200"></div>
         <div
-          className="absolute left-0 top-1/2 z-0 h-1 -translate-y-1/2 rounded-full bg-emerald-600 transition-all duration-500"
+          className="absolute left-0 top-1/2 z-0 h-1 -translate-y-1/2 rounded-full bg-emerald-600 transition-[width] duration-500 ease-out motion-reduce:transition-none"
           style={{ width: `${((step - 1) / 2) * 100}%` }}
         ></div>
 
@@ -268,7 +268,7 @@ export default function EModulGenerator() {
 
       <div className="min-h-[400px] rounded-2xl border bg-white p-6 shadow-sm md:p-8">
         {step === 1 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="border-b pb-4 text-xl font-bold">Topik &amp; Capaian Pembelajaran</h2>
 
             <div className="space-y-4">
@@ -327,7 +327,7 @@ export default function EModulGenerator() {
         )}
 
         {step === 2 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="border-b pb-4 text-xl font-bold">Jenjang &amp; Mata Pelajaran</h2>
 
             <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
@@ -401,7 +401,7 @@ export default function EModulGenerator() {
         )}
 
         {step === 3 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+          <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-right-4">
             <h2 className="border-b pb-4 text-xl font-bold">Struktur Modul</h2>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

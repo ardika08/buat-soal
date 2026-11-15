@@ -166,7 +166,7 @@ export default function BillingReturn() {
 
 function StatusIcon({ tone, busy }: { tone: PaymentTone; busy: boolean }) {
   if (busy && tone === "pending") {
-    return <Loader2 className="mx-auto h-12 w-12 animate-spin text-indigo-500" />;
+    return <Loader2 className="mx-auto h-12 w-12 animate-spin motion-reduce:animate-none text-indigo-500" />;
   }
 
   if (tone === "success") {

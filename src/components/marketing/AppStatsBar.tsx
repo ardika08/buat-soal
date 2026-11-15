@@ -15,7 +15,7 @@ const INITIAL_STATS: AppStats = {
 };
 
 function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat("en", {
+  return new Intl.NumberFormat("id-ID", {
     notation: "compact",
     maximumFractionDigits: value >= 10000 ? 1 : 0,
   }).format(value);
@@ -36,8 +36,8 @@ function StatItem({
         {icon}
       </div>
       <div className="flex min-w-0 items-baseline gap-2">
-        <span className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">{value}</span>
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</span>
+        <span className="text-lg font-extrabold tabular-nums tracking-tight text-slate-900 sm:text-xl">{value}</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">{label}</span>
       </div>
     </div>
   );
@@ -108,7 +108,7 @@ export default function AppStatsBar() {
           <StatItem
             icon={<Users className="h-4 w-4" />}
             value={formatCompactNumber(stats.total_users)}
-            label="User"
+            label="Pengguna"
           />
 
           <div className="h-6 w-px bg-slate-200" />

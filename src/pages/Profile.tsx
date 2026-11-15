@@ -12,7 +12,7 @@ export default function Profile() {
       : "Paket Dasar";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Profil Akun</h1>
         <p className="text-sm text-slate-500">Ringkasan identitas, kredit, dan paket langganan Anda.</p>

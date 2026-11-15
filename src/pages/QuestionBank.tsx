@@ -111,7 +111,7 @@ export default function QuestionBank() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in motion-safe:slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-indigo-600"><BookOpen className="h-5 w-5" /><span className="text-sm font-semibold">Koleksi Pribadi</span></div>
@@ -149,7 +149,7 @@ export default function QuestionBank() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {filtered.map((question) => (
-            <article key={question.id} className={`rounded-2xl border bg-white p-5 shadow-sm transition ${selected.has(question.id) ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"}`}>
+            <article key={question.id} className={`rounded-2xl border bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 ease-out ${selected.has(question.id) ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"}`}>
               <div className="flex items-start gap-3">
                 <button type="button" onClick={() => toggle(question.id)} className="mt-0.5 text-indigo-600" aria-label="Pilih soal">
                   {selected.has(question.id) ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}

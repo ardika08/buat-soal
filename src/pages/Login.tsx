@@ -35,7 +35,7 @@ export default function Login() {
   // supaya tidak memicu render berantai lewat setState di dalam effect.
   const configError = GOOGLE_CLIENT_ID
     ? null
-    : "VITE_GOOGLE_CLIENT_ID belum dikonfigurasi di frontend.";
+    : "Layanan login Google belum dikonfigurasi. Hubungi administrator atau periksa pengaturan aplikasi.";
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
@@ -52,7 +52,7 @@ export default function Login() {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
           if (!response.credential) {
-            setError("Google tidak mengirim credential login.");
+            setError("Akun Google tidak mengirim data login. Pilih kembali akun Google Anda lalu coba lagi.");
             return;
           }
 
@@ -73,19 +73,27 @@ export default function Login() {
               ? Object.values(apiError.response.data.errors).flat()[0]
               : undefined;
             const fallback = apiError.request && !apiError.response
-              ? `Supabase tidak merespons. Pastikan VITE_SUPABASE_URL benar: ${BASE_URL}.`
+              ? `Tidak dapat terhubung ke server (${BASE_URL}). Periksa koneksi internet Anda lalu coba lagi.`
               : apiError.message;
-            setError(validation ?? apiError.response?.data?.message ?? fallback ?? "Login Google gagal.");
+            setError(
+              validation ??
+                apiError.response?.data?.message ??
+                fallback ??
+                "Gagal masuk dengan Google. Periksa koneksi internet Anda lalu coba lagi.",
+            );
           }
         },
       });
+
+      const availableWidth = buttonRef.current.clientWidth || 320;
+      const buttonWidth = Math.max(200, Math.min(320, availableWidth));
 
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
         size: "large",
         text: "continue_with",
         shape: "rectangular",
-        width: 320,
+        width: buttonWidth,
       });
     };
 
@@ -99,7 +107,8 @@ export default function Login() {
     script.async = true;
     script.defer = true;
     script.onload = renderGoogleButton;
-    script.onerror = () => setError("Gagal memuat tombol login Google.");
+    script.onerror = () =>
+      setError("Tombol login Google gagal dimuat. Periksa koneksi internet Anda lalu muat ulang halaman.");
     document.body.appendChild(script);
   }, [loginWithGoogle, navigate]);
 
@@ -108,29 +117,32 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border bg-white p-6 sm:p-8 shadow-sm">
         <div className="text-center space-y-3 mb-8">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-200">
-            <BrainCircuit className="h-8 w-8 text-white" />
+            <BrainCircuit className="h-8 w-8 text-white" aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Masuk ke Soalify</h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Login atau daftar otomatis memakai akun Google. User baru mendapat 100 kredit gratis.
+            <p className="mt-2 text-sm text-slate-600">
+              Masuk atau daftar otomatis memakai akun Google. Pengguna baru mendapat 100 kredit gratis.
             </p>
           </div>
         </div>
 
         {(configError ?? error) && (
-          <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div
+            role="alert"
+            className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{configError ?? error}</span>
           </div>
         )}
 
-        <div className="flex justify-center" ref={buttonRef} />
+        <div className="flex w-full justify-center overflow-hidden" ref={buttonRef} />
       </div>
-    </div>
+    </main>
   );
 }

@@ -32,7 +32,7 @@ export default function ExamHistoryItem({ exam, onDelete }: ExamHistoryItemProps
   };
 
   return (
-    <div className="group bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="group bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition-[border-color,box-shadow] duration-150 ease-out hover:border-indigo-200 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <button
         type="button"
         className="flex min-w-0 flex-1 items-start gap-4 text-left"
