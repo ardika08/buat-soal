@@ -7,7 +7,7 @@ export default function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-slate-50 text-slate-500">
+      <div className="min-h-dvh grid place-items-center bg-slate-50 text-slate-500">
         Memuat sesi...
       </div>
     );

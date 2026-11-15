@@ -25,7 +25,7 @@ import CreditTopup from "./pages/CreditTopup";
 function App() {
   if (!isSupabaseConfigured) {
     return (
-      <div className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900">
+      <div className="min-h-dvh bg-slate-50 px-4 py-10 text-slate-900">
         <div className="mx-auto max-w-2xl rounded-3xl border bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold">Konfigurasi Supabase Belum Lengkap</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">

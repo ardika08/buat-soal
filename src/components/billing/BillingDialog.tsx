@@ -438,7 +438,7 @@ export function BillingTopupPage({ defaultTab = "topup" }: BillingTopupPageProps
 export default function BillingDialog({ open, onOpenChange, defaultTab = "topup" }: BillingDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
-      <DialogContent className="sm:max-w-3xl p-0 overflow-hidden">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-y-auto overscroll-contain p-0 sm:max-w-3xl">
         <BillingPackagesPanel defaultTab={defaultTab} />
       </DialogContent>
     </Dialog>

@@ -83,7 +83,7 @@ export default function TransactionHistory() {
             {orders.map((order) => {
               const status = STATUS[order.status];
               return (
-                <article key={order.id} className="grid gap-4 p-5 md:grid-cols-[1.3fr_1fr_auto] md:items-center">
+                <article key={order.id} className="grid gap-4 p-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <FileText className="h-4 w-4 text-indigo-500" />
@@ -93,7 +93,7 @@ export default function TransactionHistory() {
                     <p className="mt-1 text-sm text-slate-500">{packageName(order)} · {formatDate(order.created_at)}</p>
                     <p className="mt-1 text-xs font-medium text-slate-500">Nomor transaksi: {paymentTransactionNumber(order.id)}</p>
                     {(order.provider_transaction_id || order.provider_order_id) && (
-                      <p className="mt-1 truncate text-xs text-slate-400">
+                      <p className="mt-1 break-all text-xs text-slate-400">
                         Referensi {order.provider}: {order.provider_transaction_id || order.provider_order_id}
                       </p>
                     )}

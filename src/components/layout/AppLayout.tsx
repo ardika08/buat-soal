@@ -15,7 +15,7 @@ export default function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="flex min-h-dvh bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
@@ -24,7 +24,7 @@ export default function AppLayout() {
       </a>
 
       {/* Sidebar tetap di layar lebar */}
-      <WorkspaceSidebar className="hidden w-64 shrink-0 lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start" />
+      <WorkspaceSidebar className="hidden w-64 shrink-0 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:self-start" />
 
       {/* Mode ringkas: drawer sidebar di layar kecil dengan focus trap & Escape */}
       <DialogPrimitive.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>

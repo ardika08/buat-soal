@@ -578,7 +578,7 @@ export default function ReviewExam() {
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Questions List */}
-        <div className="flex-1 space-y-3">
+        <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="font-bold text-slate-800 text-base">
               Daftar Soal ({visibleQuestions.length} butir)
@@ -942,7 +942,7 @@ export default function ReviewExam() {
 
         {/* Sidebar Export */}
         <div className="w-full md:w-72 space-y-4 shrink-0">
-          <div className="sticky top-6 space-y-4">
+          <div className="sticky top-20 space-y-4">
             <div className="rounded-2xl border bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="font-bold text-slate-800">Analisis Kualitas</h3>
@@ -1053,7 +1053,7 @@ export default function ReviewExam() {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto overscroll-contain sm:max-w-3xl">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Pratinjau Dokumen Soal</DialogTitle>
             <DialogDescription>Periksa kop sekolah dan tampilan soal sebelum mengunduh.</DialogDescription>
