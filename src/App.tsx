@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider } from "./lib/auth";
@@ -21,6 +21,7 @@ import ReviewExam from "./pages/ReviewExam";
 import QuestionBank from "./pages/QuestionBank";
 import TransactionHistory from "./pages/TransactionHistory";
 import CreditTopup from "./pages/CreditTopup";
+import PublicHome from "./pages/PublicHome";
 
 function App() {
   if (!isSupabaseConfigured) {
@@ -51,10 +52,10 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id`}
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<PublicHome />} />
           <Route path={LOGIN_PATH} element={<Login />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<AppLayout />}>
-              <Route index element={<Navigate to={HOME_PATH} replace />} />
+            <Route element={<AppLayout />}>
               <Route path={HOME_PATH} element={<Dashboard />} />
               <Route path="/history" element={<ExamHistory />} />
               <Route path="/question-bank" element={<QuestionBank />} />
